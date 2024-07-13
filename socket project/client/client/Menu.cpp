@@ -179,3 +179,44 @@ void send_files_need_download_to_server(CSocket& client, vector<string> filename
 	client.Send(&MsgSize, sizeof(MsgSize), 0);
 	client.Send(complete_str, MsgSize, 0);
 }
+
+void receiveFile(vector<inputFile> files, CSocket& client, COORD current) {
+	vector<string> output_files;
+	vector<ofstream> output_files_stream;
+	string file = "file";
+	for (int i = 0; i < files.size(); i++) {
+		setCursorPosition(current.X, current.Y + i);
+		cout << "Downloading " << files[i].name << " ...";
+		output_files[i] = "file" + to_string(i + 1);
+		output_files_stream[i].open(output_files[i], ios::binary);
+	}
+	int MsgSize;
+	char* temp;
+	for (int i = 0; i < files.size(); i++) {
+		if (files[i].priority == "Critical") {
+			for (int i = 0; i < 3; i++) {
+				client.Receive((char*)&MsgSize, sizeof(MsgSize), 0);
+				temp = new char[MsgSize];
+				client.Receive(temp, MsgSize, 0);
+				output_files_stream[i].write(temp, MsgSize);
+			}
+		}
+		else if (files[i].priority == "High") {
+			for (int i = 0; i < 2; i++) {
+				client.Receive((char*)&MsgSize, sizeof(MsgSize), 0);
+				temp = new char[MsgSize];
+				client.Receive(temp, MsgSize, 0);
+				output_files_stream[i].write(temp, MsgSize);
+			}
+		}
+		else if (files[i].priority == "Normal") {
+			client.Receive((char*)&MsgSize, sizeof(MsgSize), 0);
+			temp = new char[MsgSize];
+			client.Receive(temp, MsgSize, 0);
+			output_files_stream[i].write(temp, MsgSize);
+		}
+	}
+	for (int i = 0; i < files.size(); i++) {
+		output_files_stream[i].close();
+	}
+}

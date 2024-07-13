@@ -32,3 +32,4 @@ void ReceivedFileDownload(CSocket& ClientSocket, string filename, COORD cursorPo
 vector<string> readNewFileAdded(string filename, vector<string>& fileList, vector<info> List);
 void send_files_need_download_to_server(CSocket& client, vector<string> filename);
 void resumeThread();
+void receiveFile(vector<inputFile> files, CSocket& client, COORD current);

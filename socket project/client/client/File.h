@@ -10,6 +10,11 @@
 #include <Windows.h>
 #include <condition_variable>
 using namespace std;
+struct inputFile {
+	string name;
+	string priority;
+};
+
 void writeInfo(char infos[]);
 void writeFile(vector<string> file, string filename, COORD cursorPos);
 bool isFileEmpty(string filename);
