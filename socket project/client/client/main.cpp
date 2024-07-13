@@ -66,19 +66,9 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 				}
 			} while (1);
 			ClientSocket.Close();*/
-			int MsgSize;
-			char Msg[100];
-			do {
-				cout << "Nhap tin nhan: ";
-				cin.getline(Msg, 100);
-				MsgSize = strlen(Msg);
-				ClientSocket.Send(&MsgSize, sizeof(MsgSize), 0);
-				ClientSocket.Send(Msg, MsgSize, 0);
-				if (strcmp(Msg, "receive") == 0) {
-					vector<info> files = ReceiveFiles_canbedownloaded(ClientSocket);
-					break;
-				}
-			} while (1);
+			
+
+
 			ClientSocket.Close();
 		}
 		else
