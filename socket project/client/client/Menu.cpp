@@ -42,6 +42,8 @@ vector<string> StringToVector(string temp)
 	return a;
 }
 
+
+//Quang
 bool checkInfo(string temp, vector<info> infos)
 {
 	bool flag = false;
@@ -54,83 +56,6 @@ bool checkInfo(string temp, vector<info> infos)
 	}
 	return flag;
 }
-
-
-vector<info> ReceiveFiles_canbedownloaded(CSocket& ClientSocket) {
-
-	int MsgSize;
-	char* temp;
-	int i = 0;
-
-	cout << "Server: " << endl;
-	vector<info> files;
-	info temp_file;
-
-	int receivedNumber;
-	ClientSocket.Receive((char*)&receivedNumber, sizeof(receivedNumber));
-	for (int i = 1; i <= receivedNumber * 2; i++)
-	{
-		// Nhan thong diep tu Server
-		ClientSocket.Receive((char*)&MsgSize, sizeof(int), 0); // Neu nhan loi thi tra ve la SOCKET_ERROR.			
-		temp = new char[MsgSize + 1];
-		ClientSocket.Receive((char*)temp, MsgSize, 0);
-		temp[MsgSize] = '\0';
-		if (i % 2 != 0) {
-			temp_file.name = string(temp);
-			cout << temp << " ";
-		}
-		else {
-			temp_file.size = string(temp);
-			cout << temp << endl;
-			files.push_back(temp_file);
-		}
-		delete[]temp;
-	}
-	return files;
-}
-
-void ReceivedFileDownload(CSocket& ClientSocket, string filename, COORD cursorPos) {
-	int MsgSize;
-	long long file_size;
-	char* temp;
-	ClientSocket.Receive((char*)&MsgSize, sizeof(MsgSize), 0);
-	temp = new char[MsgSize];
-	ClientSocket.Receive(temp, MsgSize, 0);
-	file_size = stoll((string)temp);
-	ofstream f;
-	string location = "output/";
-	location = location + filename;
-	f.open(location.c_str(), ios::binary);
-	if (!f.is_open()) {
-		cout << "Error opening file!" << endl;
-		return;
-	}
-	float percent = static_cast<float>(512) / file_size;
-	float download = 0;
-	delete[] temp;
-	setCursorPosition(cursorPos.X, cursorPos.Y);
-	cout << "Downloading " << filename << " ...";
-	do
-	{
-		ClientSocket.Receive((char*)&MsgSize, sizeof(int), 0);
-		temp = new char[MsgSize];
-		ClientSocket.Receive(temp, MsgSize, 0);
-		if (strcmp(temp, "completed") != 0) {
-			f.write(temp, MsgSize);
-			setCursorPosition(cursorPos.X + filename.length() + 20, cursorPos.Y);
-			download += percent;
-			cout << fixed << setprecision(0) << download * 100 << "%" << flush;
-			this_thread::sleep_for(as);
-			delete[] temp;
-		}
-		else {
-			delete[] temp;
-			break;
-		}
-	} while (1);
-	f.close();
-}
-
 vector<string> readNewFileAdded(string filename, vector<string>& fileList, vector<info> List)
 {
 	ifstream file(filename.c_str());
@@ -160,16 +85,10 @@ vector<string> readNewFileAdded(string filename, vector<string>& fileList, vecto
 	}
 	return file_download;
 }
-
-void resumeThread() {
-	unique_lock<mutex> lk(mtx);
-	pauseFlag = false;
-	cv.notify_one();
-}
+////////
 
 void send_files_need_download_to_server(CSocket& client, vector<inputFile> files) {
 	int MsgSize;
-	char* temp;
 	for (int i = 0; i < files.size(); i++) {
 		MsgSize = files[i].name.size();
 		client.Send(&MsgSize, sizeof(MsgSize), 0);
@@ -184,11 +103,10 @@ void send_files_need_download_to_server(CSocket& client, vector<inputFile> files
 	client.Send(completed, MsgSize, 0);
 }
 
-
-
 void receiveFile(vector<inputFile> files, CSocket& client, COORD current) {
 	vector<ofstream> output_files_stream;
 	string file = "file";
+	COORD temp_cursor = getCursorPosition();
 	for (int i = 0; i < files.size(); i++) {
 		setCursorPosition(current.X, current.Y + i);
 		cout << "Downloading " << files[i].name << " ...";
@@ -197,31 +115,65 @@ void receiveFile(vector<inputFile> files, CSocket& client, COORD current) {
 	send_files_need_download_to_server(client, files);
 	int MsgSize;
 	char* temp;
-	for (int i = 0; i < files.size(); i++) {
-		if (files[i].priority == "Critical") {
+	int index = 0;
+	bool* flag = new bool[files.size()];
+	for (int i = 0; i < file.size(); i++)
+	{
+		flag[i] = false;
+	}
+	while (1) {
+		if (files[index].priority == "Critical") {
 			for (int i = 0; i < 10; i++) {
 				client.Receive((char*)&MsgSize, sizeof(MsgSize), 0);
 				temp = new char[MsgSize];
 				client.Receive(temp, MsgSize, 0);
+				if (temp == "completed")
+				{
+					flag[index] = true;
+					break;
+				}
 				output_files_stream[i].write(temp, MsgSize);
 				delete[] temp;
 			}
 		}
-		else if (files[i].priority == "High") {
+		else if (files[index].priority == "High") {
 			for (int i = 0; i < 4; i++) {
 				client.Receive((char*)&MsgSize, sizeof(MsgSize), 0);
 				temp = new char[MsgSize];
 				client.Receive(temp, MsgSize, 0);
+				if (temp == "completed")
+				{
+					flag[index] = true;
+					break;
+				}
 				output_files_stream[i].write(temp, MsgSize);
 				delete[] temp;
 			}
 		}
-		else if (files[i].priority == "Normal") {
+		else if (files[index].priority == "Normal") {
 			client.Receive((char*)&MsgSize, sizeof(MsgSize), 0);
 			temp = new char[MsgSize];
 			client.Receive(temp, MsgSize, 0);
-			output_files_stream[i].write(temp, MsgSize);
+			if (temp == "completed")
+			{
+				flag[index] = true;
+				break;
+			}
+			output_files_stream[index].write(temp, MsgSize);
 			delete[] temp;
+		}
+		bool checkall = true;
+		for (int j = 0; j < files.size(); j++)
+		{
+			if (flag[j] == false)
+			{
+				checkall = false;
+				break;
+			}
+		}
+		if (checkall == true)
+		{
+			break;
 		}
 	}
 	for (int i = 0; i < files.size(); i++) {

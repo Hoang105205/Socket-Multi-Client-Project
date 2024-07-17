@@ -16,7 +16,6 @@ struct inputFile {
 };
 
 void writeInfo(char infos[]);
-void writeFile(vector<string> file, string filename, COORD cursorPos);
 bool isFileEmpty(string filename);
 void setCursorPosition(int x, int y);
 COORD getCursorPosition();

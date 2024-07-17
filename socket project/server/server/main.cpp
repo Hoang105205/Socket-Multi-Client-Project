@@ -9,32 +9,33 @@
 #include "File.h"
 using namespace std;
 
-void ClientHandler(CSocket* clientSocket)
-{
-	if (!AfxWinInit(::GetModuleHandle(NULL), NULL, ::GetCommandLine(), 0))
-	{
-		cout << "Socket initialization failed in thread!" << endl;
-		return;
-	}
+struct ThreadParam {
+	SOCKET* client;
+	COORD cursor;
+};
 
-	char buffer[1024];
-	int bytesReceived = 0;
-	int MsgSize;
-	while (true)
-	{
-		clientSocket->Receive((char*)&MsgSize, sizeof(int), 0);
-		bytesReceived = clientSocket->Receive(buffer, MsgSize, 0);
-		if (bytesReceived == SOCKET_ERROR || bytesReceived == 0)
-		{
-			break;
-		}
-		buffer[bytesReceived] = '\0';
-		if (strcmp(buffer, "receive") == 0) {
-			SendListFile(clientSocket, "info,txt");
-			break;
-		}		
+
+DWORD WINAPI function_cal(LPVOID arg)
+{
+	ThreadParam* param = (ThreadParam*)arg;
+	SOCKET* hConnected = param->client;
+	COORD cursor = param->cursor;
+	CSocket mysock;
+	//Chuyen ve lai CSocket
+	mysock.Attach(*hConnected);
+
+	bool isConnected = true;
+	int MsgSize = 1;
+	char Msg[100];
+	
+	for (int i = 0; i < 100; i++) {
+		mysock.Send(&i, sizeof(int), 0);
 	}
-	clientSocket->Close();
+		
+	delete hConnected;
+	delete param;
+	return 0;
+	
 }
 
 int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
@@ -67,35 +68,32 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 			cout << ServerSocket.GetLastError();
 			return FALSE;
 		}
-		else
-		{
-			if (ServerSocket.Listen(1) == FALSE)
-			{
-				cout << "Khong the lang nghe tren port nay !!!" << endl;
-				ServerSocket.Close();
-				return FALSE;
-			}
-		}
+		DWORD threadID;
+		HANDLE threadStatus;
 		cout << "Server khoi tao thanh cong !!!" << endl;
-		cout << "Nhap so luong client cho phep truy cap: ";
-		int num_client;
-		cin >> num_client;
-		CSocket* Connector = new CSocket[num_client];
-		for (int i = 0; i < num_client; i++)
-		{
-			if (ServerSocket.Accept(Connector[i]))
-			{
-				cout << "Client thu " << i + 1 << "ket noi thanh cong !!!" << endl;
-			}
-		}
-		for (int i = 0; i < num_client; i++)
-		{
-			thread t1(ClientHandler, &Connector[i]);
-			t1.detach();
-		}
-		delete[] Connector;
-		ServerSocket.Close();
+		CSocket Connector;
+		do {
+			cout << "Server lang nghe ket noi tu client\n";
+			ServerSocket.Listen();
+			ServerSocket.Accept(Connector);
+			//Khoi tao con tro Socket
+			SOCKET* hConnected = new SOCKET();
+			//Chuyển đỏi CSocket thanh Socket
+			*hConnected = Connector.Detach();
+			//Khoi tao thread tuong ung voi moi client Connect vao server.
+			//Nhu vay moi client se doc lap nhau, khong phai cho doi tung client xu ly rieng
+			COORD cursor;
+			cursor.X = 5;
+			cursor.Y = 10;
+			ThreadParam *param = new ThreadParam;
+			param->client = hConnected;
+			param->cursor = cursor;
+			threadStatus = CreateThread(NULL, 0, function_cal, param, 0, &threadID);
+		} while (1);
+		
 	}
 	system("pause");
 	return nRetCode;
 }
+
+

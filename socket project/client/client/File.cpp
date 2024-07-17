@@ -75,30 +75,3 @@ vector<string> InitListIfExisted(string filename)
 	f.close();
 	return List_temp;
 }
-
-
-
-void writeFile(vector<string> file, string filename, COORD cursorPos)
-{
-	ofstream f;
-	f.open(filename.c_str(), ios::binary);
-	float percent = 1 / file.size();
-	float download = 0;
-	if (!f.is_open())
-	{
-		cout << "Error!" << endl;
-		return;
-	}
-	int cnt = 0;
-	for (int i = 0; i < file.size(); i++)
-	{
-		cnt++;
-		cout << cnt << endl;
-		f.write(file[i].c_str(), 512);
-		/*download += percent;*/
-		/*setCursorPosition(cursorPos.X + 5, cursorPos.Y);
-		cout << download << "%" << flush;
-		this_thread::sleep_for(std::chrono::seconds(1));*/
-	}
-	f.close();
-}

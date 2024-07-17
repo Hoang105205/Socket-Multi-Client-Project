@@ -38,108 +38,104 @@ void SendListFile(CSocket* Connector, string filename)
 	}
 }
 
-void sendFile(const char* filename, CSocket* client, vector<inputFile> files)
+bool check_finish(ifstream& f)
 {
-	/*ifstream f;
-	f.open(filename, ios::binary);
-	int MsgSize = 512;
-	if (!f.is_open())
-	{
-		cout << "Error openning file!" << endl;
-	}
-	char* temp_file = new char[512];
-	f.seekg(0, ios::end);
-	long long size_file = f.tellg();
-	f.seekg(0, ios::beg);
-	string file_size = to_string(size_file);
-	int size_str = file_size.length();
-	Connector->Send(&size_str, sizeof(size_str), 0);
-	Connector->Send(file_size.c_str(), size_str, 0);
-	long long byte_read = 0;
-	while ((byte_read + 512) <= size_file)
-	{
-		f.read(temp_file, 512);
-		Connector->Send(&MsgSize, sizeof(MsgSize), 0);
-		Connector->Send(temp_file, MsgSize, 0);
-		byte_read += 512;
-	}
-	int byte_remain = size_file - byte_read;
-	if (byte_remain != 0)
-	{
-		f.read(temp_file, byte_remain);
-		Connector->Send(&byte_remain, sizeof(byte_remain), 0);
-		Connector->Send(temp_file, byte_remain, 0);
-	}
-	delete[] temp_file;
-	f.close();
-	MsgSize = 10;
-	Connector->Send(&MsgSize, sizeof(MsgSize), 0);
-	const char* stopFlag = "completed";
-	Connector->Send(stopFlag, MsgSize, 0);*/
-	vector<ifstream> input_files_stream;
-	for (int i = 0; i < files.size(); i++) {
-		input_files_stream[i].open(files[i].name, ios::binary);
-	}
-	int MsgSize;
-	char* temp;
-	int index = 0;
-	bool* flag = new bool[files.size()];
-	for (int i = 0; i < files.size(); i++) {
-		flag[i] = false;
-	}
-	while(1) {
-		if (flag[index] == false) {
-			if (files[index].priority == "Critical") {
-				for (int i = 0; i < 10; i++) {
+    int temp1 = f.tellg();
+    f.seekg(ios::end);
+    int temp2 = f.tellg();
+    if (temp1 == temp2)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
 
-					client.Receive((char*)&MsgSize, sizeof(MsgSize), 0);
-					temp = new char[MsgSize];
-					client.Receive(temp, MsgSize, 0);
-					output_files_stream[index].write(temp, MsgSize);
-					delete[] temp;
-				}	
-			}
-			else if (files[index].priority == "High") {
-				for (int i = 0; i < 4; i++) {
-					client.Receive((char*)&MsgSize, sizeof(MsgSize), 0);
-					temp = new char[MsgSize];
-					client.Receive(temp, MsgSize, 0);
-					output_files_stream[index].write(temp, MsgSize);
-					delete[] temp;
-				}				
-			}
-			else if (files[index].priority == "Normal") {
-				client.Receive((char*)&MsgSize, sizeof(MsgSize), 0);
-				temp = new char[MsgSize];
-				client.Receive(temp, MsgSize, 0);
-				output_files_stream[index].write(temp, MsgSize);
-				delete[] temp;
-			}
-			//if tellg == xu li doi flag
-			/*int temp1 = tellg();
-			fseekg(ios::end);
-			int temp2 = tellg*/
+void sendFile(CSocket* client, vector<inputFile> files)
+{
+    ifstream* input_files_stream = new ifstream[files.size()];
+    for (int i = 0; i < files.size(); i++) {
+        input_files_stream[i].open(files[i].name, ios::binary);
+    }
+    int MsgSize = 1048576;
+    char* temp;
+    int index = 0;
+    bool* flag = new bool[files.size()];
+    for (int i = 0; i < files.size(); i++) {
+        flag[i] = false;
+    }
+    while (1) {
+        if (flag[index] == false) {
+            if (files[index].priority == "Critical") {
+                for (int i = 0; i < 10; i++) {
+                    temp = new char[MsgSize];
+                    input_files_stream[index].read(temp, MsgSize);
+                    client->Send(&MsgSize, sizeof(MsgSize), 0);
+                    client->Send(temp, MsgSize, 0);
+                    delete[] temp;
+                    if (check_finish(input_files_stream[index]))
+                    {
+                        flag[index] = true;
+                        const char* complete = "Completed";
+                        int size = strlen(complete);
+                        client->Send(&size, sizeof(size), 0);
+                        client->Send(complete, size, 0);
+                    }
+                }
+            }
+            else if (files[index].priority == "High") {
+                for (int i = 0; i < 4; i++) {
+                    temp = new char[MsgSize];
+                    input_files_stream[index].read(temp, MsgSize);
+                    client->Send(&MsgSize, sizeof(MsgSize), 0);
+                    client->Send(temp, MsgSize, 0);
+                    delete[] temp;
+                    if (check_finish(input_files_stream[index]))
+                    {
+                        flag[index] = true;
+                        const char* complete = "Completed";
+                        int size = strlen(complete);
+                        client->Send(&size, sizeof(size), 0);
+                        client->Send(complete, size, 0);
+                    }
+                }
+            }
+            else if (files[index].priority == "Normal") {
+                temp = new char[MsgSize];
+                input_files_stream[index].read(temp, MsgSize);
+                client->Send(&MsgSize, sizeof(MsgSize), 0);
+                client->Send(temp, MsgSize, 0);
+                delete[] temp;
+                if (check_finish(input_files_stream[index]))
+                {
+                    flag[index] = true;
+                    const char* complete = "Completed";
+                    int size = strlen(complete);
+                    client->Send(&size, sizeof(size), 0);
+                    client->Send(complete, size, 0);
+                }
+            }
+        }
+        index++;
+        if (index == files.size()) index = 0;
+        bool check_all = true;
+        for (int i = 0; i < files.size(); i++) {
+            if (flag[i] == false) {
+                index = i;
+                check_all = false;
+                break;
+            }
+        }
 
-		}
-		index++;
-		if (index == files.size()) index = 0;
-
-		bool check_all = true;
-		for (int i = 0; i < files.size(); i++) {
-			if (flag[i] == false) {
-				index = i;
-				check_all = false;
-				break;
-			}
-		}
-
-		if (check_all == true) {
-			break;
-		}
-	}
-
-
-	for (int i = 0; i < files.size(); i++) {
-		input_files_stream[i].close;
-	}
+        if (check_all == true) {
+            break;
+        }
+    }
+    for (int i = 0; i < files.size(); i++) {
+        input_files_stream[i].close();
+    }
+    delete[] input_files_stream;
+	delete[] flag;
 }
