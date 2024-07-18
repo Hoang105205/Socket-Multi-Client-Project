@@ -7,4 +7,4 @@ struct inputFile {
 	string priority;
 };
 using namespace std;
-void send_files_to_client(CSocket* client);
+vector<inputFile> send_files_to_client(CSocket* client, bool isConnected);

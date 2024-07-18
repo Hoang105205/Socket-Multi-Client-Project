@@ -11,31 +11,48 @@ using namespace std;
 
 struct ThreadParam {
 	SOCKET* client;
-	COORD cursor;
+	vector<inputFile> file;
 };
 
-
-DWORD WINAPI function_cal(LPVOID arg)
+DWORD WINAPI send_file(LPVOID arg)
 {
 	ThreadParam* param = (ThreadParam*)arg;
 	SOCKET* hConnected = param->client;
-	COORD cursor = param->cursor;
+	vector<inputFile> files = param->file;
+	CSocket mysock;
+	//Chuyen ve lai CSocket
+	mysock.Attach(*hConnected);
+	sendFile(&mysock, files);
+	delete hConnected;
+	delete param;
+	return 0;
+}
+
+
+DWORD WINAPI serve_client(LPVOID arg)
+{
+	SOCKET* hConnected = (SOCKET*)arg;;
 	CSocket mysock;
 	//Chuyen ve lai CSocket
 	mysock.Attach(*hConnected);
 
 	bool isConnected = true;
-	int MsgSize = 1;
-	char Msg[100];
-	
-	for (int i = 0; i < 100; i++) {
-		mysock.Send(&i, sizeof(int), 0);
-	}
-		
+	vector<inputFile> files;
+	do {
+		files.clear();
+		files = send_files_to_client(&mysock, isConnected);
+		if (isConnected == false) {
+			break;
+		}
+		else {
+			ThreadParam* param = new ThreadParam();
+			param->client = hConnected;
+			param->file = files;
+			CreateThread(NULL, 0, send_file, param, 0, NULL);
+		}
+	} while (isConnected);		
 	delete hConnected;
-	delete param;
 	return 0;
-	
 }
 
 int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
@@ -82,13 +99,8 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 			*hConnected = Connector.Detach();
 			//Khoi tao thread tuong ung voi moi client Connect vao server.
 			//Nhu vay moi client se doc lap nhau, khong phai cho doi tung client xu ly rieng
-			COORD cursor;
-			cursor.X = 5;
-			cursor.Y = 10;
-			ThreadParam *param = new ThreadParam;
-			param->client = hConnected;
-			param->cursor = cursor;
-			threadStatus = CreateThread(NULL, 0, function_cal, param, 0, &threadID);
+
+			threadStatus = CreateThread(NULL, 0, serve_client, hConnected, 0, &threadID);
 		} while (1);
 		
 	}
