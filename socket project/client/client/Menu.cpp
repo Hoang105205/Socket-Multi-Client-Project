@@ -1,11 +1,7 @@
 #include "Menu.h"
 atomic<bool> offFlag(false);
-atomic<bool> pauseFlag(false);
-condition_variable cv;
-mutex mtx;
-atomic<bool> DownFlag(true);
-condition_variable cv_Download;
-mutex mtx_Download;
+mutex mtx;;
+queue<vector<inputFile>> file_download;
 
 using attoseconds = std::chrono::duration<long long, std::atto>;
 attoseconds as(1000);
@@ -166,7 +162,7 @@ void receiveFile(vector<inputFile> files, CSocket& client, COORD current) {
 		flag[i] = false;
 	}
 	while (1) {
-		if (files[index].priority == "Critical") {
+		if (files[index].priority == "CRITICAL") {
 			for (int i = 0; i < 10; i++) {
 				client.Receive((char*)&MsgSize, sizeof(MsgSize), 0);
 				temp = new char[MsgSize];
@@ -180,7 +176,7 @@ void receiveFile(vector<inputFile> files, CSocket& client, COORD current) {
 				delete[] temp;
 			}
 		}
-		else if (files[index].priority == "High") {
+		else if (files[index].priority == "HIGH") {
 			for (int i = 0; i < 4; i++) {
 				client.Receive((char*)&MsgSize, sizeof(MsgSize), 0);
 				temp = new char[MsgSize];
@@ -194,7 +190,7 @@ void receiveFile(vector<inputFile> files, CSocket& client, COORD current) {
 				delete[] temp;
 			}
 		}
-		else if (files[index].priority == "Normal") {
+		else if (files[index].priority == "NORMAL") {
 			client.Receive((char*)&MsgSize, sizeof(MsgSize), 0);
 			temp = new char[MsgSize];
 			client.Receive(temp, MsgSize, 0);

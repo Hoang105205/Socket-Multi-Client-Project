@@ -18,34 +18,29 @@ void set_up() {
 	input.open(input_str.c_str(), ios::app);
 	input.close();
 }
-struct ThreadParam {
+
+HANDLE Mutex;
+
+struct ThreadParam{
 	SOCKET* client;
+	vector<inputFile> file;
 	COORD cursor;
 };
+
 
 DWORD WINAPI function_cal(LPVOID arg)
 {
 	ThreadParam* param = (ThreadParam*)arg;
-	SOCKET* hConnected = param->client;
-	COORD cursor = param->cursor;
-	CSocket mysock;
-	//Chuyen ve lai CSocket
-	mysock.Attach(*hConnected);
-
-	int MsgSize = 1;
-	char Msg[100];
-
-	for (int i = 0; i < 100; i++) {
-		mysock.Receive(&MsgSize, sizeof(int), 0);
-		setCursorPosition(cursor.X, cursor.Y);
-		cout << MsgSize << endl;
-		cursor.Y += 1;
-	}
-	delete hConnected;
+	SOCKET* client = param->client;
+	CSocket ClientSocket;
+	ClientSocket.Attach(*client);
+	send_files_need_download_to_server(ClientSocket, param->file);
+	receiveFile(param->file, ClientSocket, param->cursor);
+	delete client;
 	delete param;
 	return 0;
-
 }
+
 int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 {
 
@@ -77,33 +72,36 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 		{
 			cout << "Ket noi toi Server thanh cong !!!" << endl << endl;
 			signal(SIGINT, signal_callback_handler);
-			vector<info> files = ReceiveFiles_canbedownloaded(ClientSocket);
+		
 			COORD cursorPos = getCursorPosition();
-			cursorPos.Y += 1;		
-			vector<inputFile> main_List = InitListIfExisted("input.txt");
-			/*do {
-				//ham cua thang Quang
-				vector<string> file_needed_to_download = readNewFileAdded("input.txt", main_List, files);
-				if (file_needed_to_download.size() != 0) {
-					send_files_need_download_to_server(ClientSocket, file_needed_to_download);
-					for (int i = 0; i < file_needed_to_download.size(); i++) {
-						ReceivedFileDownload(ClientSocket, file_needed_to_download[i], cursorPos);
-						cursorPos.Y += 1;
-					}
-				}
-			} while (1);*/
-			do {
+			cursorPos.Y += 1;
 
-				DWORD threadID;
-				HANDLE threadStatus;
-				SOCKET* hConnected = new SOCKET();
-				//Chuyển đỏi CSocket thanh Socket
-				*hConnected = ClientSocket.Detach();
-				//Khoi tao thread tuong ung voi moi client Connect vao server.
-				//Nhu vay moi client se doc lap nhau, khong phai cho doi tung client xu ly rieng		
-				threadStatus = CreateThread(NULL, 0, function_cal, hConnected, 0, &threadID);
+			vector<info> files = ReceiveFiles_canbedownloaded(ClientSocket);
+			vector<inputFile> main_List = InitListIfExisted("input.txt");
+			string Level[3] = { "CRITICIAL", "HIGH", "NORMAL" };
+			thread th(readNewFileAdded, "input.txt", ref(main_List), files, Level);
+			Mutex = CreateMutex(NULL, FALSE, NULL);
+
+			do {
+				if (file_download.size() != 0) {
+					DWORD threadID;
+					HANDLE threadStatus;
+					SOCKET* hConnected = new SOCKET();
+					*hConnected = ClientSocket.Detach();
+					ThreadParam* param = new ThreadParam();
+					param->client = hConnected;
+					param->file = file_download.front();
+					param->cursor = getCursorPosition();
+					threadStatus = CreateThread(NULL, 0, function_cal, param, 0, &threadID);
+					file_download.pop();
+				}
 			} while (1);
 
+			CloseHandle(Mutex);
+			offFlag = true;
+			th.detach();
+
+			ClientSocket.Close();
 		}
 		else
 		{
