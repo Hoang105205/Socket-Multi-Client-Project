@@ -1,11 +1,7 @@
 #include "Menu.h"
 atomic<bool> offFlag(false);
-atomic<bool> pauseFlag(false);
-condition_variable cv;
-mutex mtx;
-atomic<bool> DownFlag(true);
-condition_variable cv_Download;
-mutex mtx_Download;
+mutex mtx;;
+queue<vector<inputFile>> file_download;
 
 using attoseconds = std::chrono::duration<long long, std::atto>;
 attoseconds as(1000);

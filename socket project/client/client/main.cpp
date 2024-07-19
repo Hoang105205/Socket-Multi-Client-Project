@@ -6,6 +6,8 @@
 using namespace std;
 namespace fs = filesystem;
 
+HANDLE Mutex;
+
 struct ThreadParam {
 	SOCKET* client;
 	COORD cursor;
@@ -20,15 +22,15 @@ DWORD WINAPI function_cal(LPVOID arg)
 	//Chuyen ve lai CSocket
 	mysock.Attach(*hConnected);
 
-	int MsgSize = 1;
-	char Msg[100];
+	WaitForSingleObject(Mutex, INFINITE);
+	vector<inputFile> file_needed_to_download = file_download.front();
+	file_download.pop();
+	ReleaseMutex(Mutex);
 
-	for (int i = 0; i < 100; i++) {
-		mysock.Receive(&MsgSize, sizeof(int), 0);
-		setCursorPosition(cursor.X, cursor.Y);
-		cout << MsgSize << endl;
-		cursor.Y += 1;
-	}
+	send_files_need_download_to_server(mysock, file_needed_to_download);
+	
+	receiveFile(file_needed_to_download, mysock, cursor);
+
 	delete hConnected;
 	delete param;
 	return 0;
@@ -71,25 +73,19 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 				cout << "Folder already exists or could not be created.\n";
 			}
 			signal(SIGINT, signal_callback_handler);
-		/*	vector<info> files = ReceiveFiles_canbedownloaded(ClientSocket);*/
+		
 			COORD cursorPos = getCursorPosition();
 			cursorPos.Y += 1;
 			ifstream input;
 			string input_str = "input.txt";
 			input.open(input_str.c_str(), ios::app);
 			input.close();
-			/*vector<string> main_List = InitListIfExisted("input.txt");
-			do {
-				//ham cua thang Quang
-				vector<string> file_needed_to_download = readNewFileAdded("input.txt", main_List, files);
-				if (file_needed_to_download.size() != 0) {
-					send_files_need_download_to_server(ClientSocket, file_needed_to_download);
-					for (int i = 0; i < file_needed_to_download.size(); i++) {
-						ReceivedFileDownload(ClientSocket, file_needed_to_download[i], cursorPos);
-						cursorPos.Y += 1;
-					}
-				}
-			} while (1);*/
+
+			vector<inputFile> main_List = InitListIfExisted("input.txt");
+			string Level[3] = { "CRITICIAL", "HIGH", "NORMAL" };
+			thread th(readNewFileAdded, "input.txt", ref(main_List), files, Level);
+
+
 			DWORD threadID;
 			HANDLE threadStatus;
 			SOCKET* hConnected = new SOCKET();
