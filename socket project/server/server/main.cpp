@@ -93,16 +93,15 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 			cout << "Server lang nghe ket noi tu client\n";
 			ServerSocket.Listen();
 			ServerSocket.Accept(Connector);
+			SendListFile(&Connector, "info.txt");
 			//Khoi tao con tro Socket
 			SOCKET* hConnected = new SOCKET();
 			//Chuyển đỏi CSocket thanh Socket
 			*hConnected = Connector.Detach();
 			//Khoi tao thread tuong ung voi moi client Connect vao server.
 			//Nhu vay moi client se doc lap nhau, khong phai cho doi tung client xu ly rieng
-
 			threadStatus = CreateThread(NULL, 0, serve_client, hConnected, 0, &threadID);
 		} while (1);
-		
 	}
 	system("pause");
 	return nRetCode;

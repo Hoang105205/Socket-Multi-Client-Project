@@ -15,6 +15,38 @@ void signal_callback_handler(int signum) {
 	exit(signum);
 }
 
+vector<info> ReceiveFiles_canbedownloaded(CSocket& ClientSocket) {
+
+	int MsgSize;
+	char* temp;
+	int i = 0;
+
+	cout << "Server: " << endl;
+	vector<info> files;
+	info temp_file;
+
+	int receivedNumber;
+	ClientSocket.Receive((char*)&receivedNumber, sizeof(receivedNumber));
+	for (int i = 1; i <= receivedNumber * 2; i++)
+	{
+		// Nhan thong diep tu Server
+		ClientSocket.Receive((char*)&MsgSize, sizeof(int), 0); // Neu nhan loi thi tra ve la SOCKET_ERROR.			
+		temp = new char[MsgSize + 1];
+		ClientSocket.Receive((char*)temp, MsgSize, 0);
+		temp[MsgSize] = '\0';
+		if (i % 2 != 0) {
+			temp_file.name = string(temp);
+			cout << temp << " ";
+		}
+		else {
+			temp_file.size = string(temp);
+			cout << temp << endl;
+			files.push_back(temp_file);
+		}
+		delete[]temp;
+	}
+	return files;
+}
 
 vector<string> StringToVector(string temp)
 {

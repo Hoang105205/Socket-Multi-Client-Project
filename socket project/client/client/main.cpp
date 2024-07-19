@@ -6,6 +6,18 @@
 using namespace std;
 namespace fs = filesystem;
 
+void set_up() {
+	if (fs::create_directory("output")) {
+		cout << "Folder created successfully.\n";
+	}
+	else {
+		cout << "Folder already exists or could not be created.\n";
+	}
+	ifstream input;
+	string input_str = "input.txt";
+	input.open(input_str.c_str(), ios::app);
+	input.close();
+}
 struct ThreadParam {
 	SOCKET* client;
 	COORD cursor;
@@ -64,22 +76,12 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 		if (ClientSocket.Connect(_T("192.168.1.83"), 1234) != 0)
 		{
 			cout << "Ket noi toi Server thanh cong !!!" << endl << endl;
-			if (fs::create_directory("output")) {
-				cout << "Folder created successfully.\n";
-			}
-			else {
-				cout << "Folder already exists or could not be created.\n";
-			}
 			signal(SIGINT, signal_callback_handler);
-		/*	vector<info> files = ReceiveFiles_canbedownloaded(ClientSocket);*/
+			vector<info> files = ReceiveFiles_canbedownloaded(ClientSocket);
 			COORD cursorPos = getCursorPosition();
-			cursorPos.Y += 1;
-			ifstream input;
-			string input_str = "input.txt";
-			input.open(input_str.c_str(), ios::app);
-			input.close();
-			/*vector<string> main_List = InitListIfExisted("input.txt");
-			do {
+			cursorPos.Y += 1;		
+			vector<inputFile> main_List = InitListIfExisted("input.txt");
+			/*do {
 				//ham cua thang Quang
 				vector<string> file_needed_to_download = readNewFileAdded("input.txt", main_List, files);
 				if (file_needed_to_download.size() != 0) {
@@ -90,21 +92,17 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 					}
 				}
 			} while (1);*/
-			DWORD threadID;
-			HANDLE threadStatus;
-			SOCKET* hConnected = new SOCKET();
-			//Chuyển đỏi CSocket thanh Socket
-			*hConnected = ClientSocket.Detach();
-			//Khoi tao thread tuong ung voi moi client Connect vao server.
-			//Nhu vay moi client se doc lap nhau, khong phai cho doi tung client xu ly rieng
-			COORD cursor;
-			cursor.X = 5;
-			cursor.Y = 10;
-			ThreadParam* param = new ThreadParam;
-			param->client = hConnected;
-			param->cursor = cursor;
-			threadStatus = CreateThread(NULL, 0, function_cal, param, 0, &threadID);
+			do {
 
+				DWORD threadID;
+				HANDLE threadStatus;
+				SOCKET* hConnected = new SOCKET();
+				//Chuyển đỏi CSocket thanh Socket
+				*hConnected = ClientSocket.Detach();
+				//Khoi tao thread tuong ung voi moi client Connect vao server.
+				//Nhu vay moi client se doc lap nhau, khong phai cho doi tung client xu ly rieng		
+				threadStatus = CreateThread(NULL, 0, function_cal, hConnected, 0, &threadID);
+			} while (1);
 
 		}
 		else

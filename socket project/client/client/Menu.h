@@ -19,7 +19,7 @@ struct info {
 extern atomic<bool> offFlag;
 extern mutex mtx;
 extern queue<vector<inputFile>> file_download;
-
+vector<info> ReceiveFiles_canbedownloaded(CSocket& ClientSocket);
 void signal_callback_handler(int signum);
 vector<string> StringToVector(string temp);
 bool checkInfo(inputFile temp, vector<info> infos, string level[]);
