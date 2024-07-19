@@ -9,24 +9,20 @@
 #include <ratio>
 #include <iomanip>
 #include <signal.h>
+#include <queue>
 using namespace std;
 struct info {
 	string name;
 	string size;
 };
+
 extern atomic<bool> offFlag;
-
-extern atomic<bool> pauseFlag;
-extern condition_variable cv;
 extern mutex mtx;
-
-extern condition_variable cv_Download;
-extern mutex mtx_Download;
-extern atomic<bool> DownFlag;
+extern queue<vector<inputFile>> file_download;
 
 void signal_callback_handler(int signum);
 vector<string> StringToVector(string temp);
-bool checkInfo(string temp, vector<info> infos);
-vector<string> readNewFileAdded(string filename, vector<string>& fileList, vector<info> List);
+bool checkInfo(inputFile temp, vector<info> infos, string level[]);
+void readNewFileAdded(string filename, vector<inputFile>& fileList, vector<info> List, string Level[]);
 void send_files_need_download_to_server(CSocket& client, vector<string> filename);
 void receiveFile(vector<inputFile> files, CSocket& client, COORD current);

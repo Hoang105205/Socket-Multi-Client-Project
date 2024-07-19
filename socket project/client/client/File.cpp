@@ -55,21 +55,22 @@ void writeInfo(char infos[])
 	return;
 }
 
-vector<string> InitListIfExisted(string filename)
+vector<inputFile> InitListIfExisted(string filename)
 {
-	vector<string> List_temp;
+	vector<inputFile> List_temp;
 	ifstream f(filename.c_str());
 	if (!f.is_open())
 	{
 		return List_temp;
 	}
-	string line = "";
+	inputFile line;
 	while (!f.eof())
 	{
-		getline(f, line, '\n');
-		if (line == "") {
+		getline(f, line.name, ' ');
+		if (line.name == "") {
 			break;
 		}
+		getline(f, line.priority, '\n');
 		List_temp.push_back(line);
 	}
 	f.close();

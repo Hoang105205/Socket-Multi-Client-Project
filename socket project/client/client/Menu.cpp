@@ -44,46 +44,58 @@ vector<string> StringToVector(string temp)
 
 
 //Quang
-bool checkInfo(string temp, vector<info> infos)
+bool checkInfo(inputFile temp, vector<info> infos, string level[])
 {
 	bool flag = false;
 	for (int i = 0; i < infos.size(); i++)
 	{
-		if (temp == infos[i].name)
+		if (temp.name == infos[i].name)
 		{
-			flag = true;
+			for (int i = 0; i < 3; i++)
+			{
+				if (temp.priority == level[i]) flag = true;
+			}
 		}
 	}
 	return flag;
 }
-vector<string> readNewFileAdded(string filename, vector<string>& fileList, vector<info> List)
+void readNewFileAdded(string filename, vector<inputFile>& fileList, vector<info> List, string Level[])
 {
-	ifstream file(filename.c_str());
-	vector<string> file_download;
-	if (!file.is_open()) {
-		return file_download;
-	}
-	string line = "";
-	vector<string> List_temp;
-	while (!file.eof())
-	{
-		getline(file, line, '\n');
-		if (line == "") {
-			break;
-		}
-		List_temp.push_back(line);
-	}
-	file.close();
+	while (offFlag != true) {
+		ifstream file(filename.c_str());
+		if (file.is_open()) {
+			inputFile line;
+			vector<inputFile> List_temp;
+			while (!file.eof())
+			{
+				getline(file, line.name, ' ');
+				if (line.name == "") {
+					break;
+				}
+				getline(file, line.priority, '\n');
+				List_temp.push_back(line);
+			}
+			file.close();
 
-	if (List_temp.size() != fileList.size())
-	{
-		for (int i = fileList.size(); i < List_temp.size(); i++)
-		{
-			fileList.push_back(List_temp[i]);
-			if (checkInfo(List_temp[i], List)) file_download.push_back(List_temp[i]);
+
+			if (List_temp.size() != fileList.size())
+			{
+				unique_lock<mutex> lk(mtx);
+				vector<inputFile> tmp;
+				for (int i = fileList.size(); i < List_temp.size(); i++)
+				{
+					fileList.push_back(List_temp[i]);
+					if (checkInfo(List_temp[i], List, Level))
+					{
+						tmp.push_back(List_temp[i]);
+					}
+				}
+				file_download.push(tmp);
+			}
 		}
+		// Sleep for 2 seconds
+		this_thread::sleep_for(std::chrono::seconds(2));
 	}
-	return file_download;
 }
 ////////
 

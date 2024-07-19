@@ -19,4 +19,4 @@ void writeInfo(char infos[]);
 bool isFileEmpty(string filename);
 void setCursorPosition(int x, int y);
 COORD getCursorPosition();
-vector<string> InitListIfExisted(string filename);
+vector<inputFile> InitListIfExisted(string filename);
