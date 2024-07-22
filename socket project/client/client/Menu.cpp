@@ -143,21 +143,57 @@ void send_files_need_download_to_server(CSocket& client, vector<inputFile> files
 	client.Send(completed, MsgSize, 0);
 }
 
+vector<int> receiveFilesize(CSocket& client)
+{
+	vector<int> file_size;
+	int MsgSize;
+	char* temp;
+	while (1)
+	{
+		client.Receive((char*)&MsgSize, sizeof(int), 0);
+		temp = new char[MsgSize];
+		client.Receive(temp, MsgSize, 0);
+		if (strcmp(temp, "completed") != 0)
+		{
+			file_size.push_back(atoi(temp));
+			delete[] temp;
+		}
+		else
+		{
+			delete[] temp;
+			break;
+		}
+	}
+	return file_size;
+}
+
 void receiveFile(vector<inputFile> files, CSocket& client, COORD current) {
+	vector<int> file_size = receiveFilesize(client);
+	vector<float> percent;
+	for (int i = 0; i < file_size.size(); i++)
+	{
+		float temp = static_cast<float>(1048576) / file_size[i];
+		percent.push_back(temp);
+	}
 	vector<ofstream> output_files_stream;
-	string file = "file";
-	COORD temp_cursor = getCursorPosition();
+	vector<COORD> temp_cursor;
 	for (int i = 0; i < files.size(); i++) {
 		setCursorPosition(current.X, current.Y + i);
 		cout << "Downloading " << files[i].name << " ...";
+		temp_cursor.push_back(getCursorPosition());
+		cout << endl;
 		output_files_stream[i].open(files[i].name, ios::binary);
 	}
-	send_files_need_download_to_server(client, files);
+	int* download = new int[files.size()];
+	for (int i = 0; i < files.size(); i++)
+	{
+		download[i] = 0;
+	}
 	int MsgSize;
 	char* temp;
 	int index = 0;
 	bool* flag = new bool[files.size()];
-	for (int i = 0; i < file.size(); i++)
+	for (int i = 0; i < files.size(); i++)
 	{
 		flag[i] = false;
 	}
@@ -173,6 +209,10 @@ void receiveFile(vector<inputFile> files, CSocket& client, COORD current) {
 					break;
 				}
 				output_files_stream[i].write(temp, MsgSize);
+				SetCursorPos(temp_cursor[index].X + 5,temp_cursor[index].Y);
+				download[index] += percent[index];
+				cout << fixed << setprecision(0) << download[index] * 100 << "%" << flush;
+				this_thread::sleep_for(as);
 				delete[] temp;
 			}
 		}
@@ -187,6 +227,10 @@ void receiveFile(vector<inputFile> files, CSocket& client, COORD current) {
 					break;
 				}
 				output_files_stream[i].write(temp, MsgSize);
+				SetCursorPos(temp_cursor[index].X + 5, temp_cursor[index].Y);
+				download[index] += percent[index];
+				cout << fixed << setprecision(0) << download[index] * 100 << "%" << flush;
+				this_thread::sleep_for(as);
 				delete[] temp;
 			}
 		}
@@ -200,6 +244,10 @@ void receiveFile(vector<inputFile> files, CSocket& client, COORD current) {
 				break;
 			}
 			output_files_stream[index].write(temp, MsgSize);
+			SetCursorPos(temp_cursor[index].X + 5, temp_cursor[index].Y);
+			download[index] += percent[index];
+			cout << fixed << setprecision(0) << download[index] * 100 << "%" << flush;
+			this_thread::sleep_for(as);
 			delete[] temp;
 		}
 		bool checkall = true;

@@ -78,12 +78,13 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 
 			vector<info> files = ReceiveFiles_canbedownloaded(ClientSocket);
 			vector<inputFile> main_List = InitListIfExisted("input.txt");
-			string Level[3] = { "CRITICIAL", "HIGH", "NORMAL" };
+			string Level[3] = { "CRITICAL", "HIGH", "NORMAL" };
 			thread th(readNewFileAdded, "input.txt", ref(main_List), files, Level);
 			Mutex = CreateMutex(NULL, FALSE, NULL);
 
 			do {
 				if (file_download.size() != 0) {
+					WaitForSingleObject(Mutex, INFINITE);
 					DWORD threadID;
 					HANDLE threadStatus;
 					SOCKET* hConnected = new SOCKET();
@@ -94,6 +95,7 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 					param->cursor = getCursorPosition();
 					threadStatus = CreateThread(NULL, 0, function_cal, param, 0, &threadID);
 					file_download.pop();
+					ReleaseMutex(Mutex);
 				}
 			} while (1);
 

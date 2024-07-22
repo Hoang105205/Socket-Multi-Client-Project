@@ -53,8 +53,32 @@ bool check_finish(ifstream& f)
     }
 }
 
+void sendFilesize(CSocket* client, vector<inputFile> files)
+{
+    ifstream f;
+    int size;
+    string temp;
+    int MsgSize;
+    for (int i = 0; i < files.size(); i++)
+    {
+        f.open(files[i].name, ios::binary);
+        f.seekg(0, ios::end);
+        size = f.tellg();
+        temp = to_string(size);
+        MsgSize = temp.length();
+        client->Send(&MsgSize, sizeof(int), 0);
+        client->Send((char*)&temp, MsgSize, 0);
+        f.close();
+    }
+    const char* stopflag = "completed";
+    MsgSize = strlen(stopflag);
+    client->Send(&MsgSize, sizeof(int), 0);
+    client->Send(stopflag, MsgSize, 0);
+}
+
 void sendFile(CSocket* client, vector<inputFile> files)
 {
+    sendFilesize(client, files);
     ifstream* input_files_stream = new ifstream[files.size()];
     for (int i = 0; i < files.size(); i++) {
         input_files_stream[i].open(files[i].name, ios::binary);

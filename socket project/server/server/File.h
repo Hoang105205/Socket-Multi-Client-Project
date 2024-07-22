@@ -12,5 +12,6 @@ struct info {
 };
 vector<info> readInfo(string filename);
 void SendListFile(CSocket* Connector, string filename);
+void sendFilesize(CSocket* client, vector<inputFile> files);
 void sendFile(CSocket* client, vector<inputFile> files);
 bool check_finish(ifstream& f);

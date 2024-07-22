@@ -26,3 +26,4 @@ bool checkInfo(inputFile temp, vector<info> infos, string level[]);
 void readNewFileAdded(string filename, vector<inputFile>& fileList, vector<info> List, string Level[]);
 void send_files_need_download_to_server(CSocket& client, vector<inputFile> filename);
 void receiveFile(vector<inputFile> files, CSocket& client, COORD current);
+vector<int> receiveFilesize(CSocket& client);
