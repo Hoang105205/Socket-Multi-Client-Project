@@ -1,14 +1,13 @@
 ﻿#include "Client.h"
 #include "File.h"
 
-vector<inputFile> send_files_to_client(CSocket* client, bool isConnected) {
+vector<inputFile> send_files_to_client(CSocket* client, bool& isConnected) {
 	int MsgSize;
 	char* temp;
 	vector<inputFile> files;
-	bool isConnected = true;
 	while (isConnected) {
 		inputFile temp_inputFile;
-		client->Receive((char*)MsgSize, sizeof(int), 0);
+		client->Receive((char*)&MsgSize, sizeof(int), 0);
 		temp = new char[MsgSize];
 		int receive_bytes = client->Receive(temp, MsgSize, 0);
 		if (receive_bytes <= 0) {  // Client đã ngắt kết nối hoặc có lỗi
@@ -20,7 +19,7 @@ vector<inputFile> send_files_to_client(CSocket* client, bool isConnected) {
 		if (strcmp(temp, "xong") != 0) {
 			temp_inputFile.name = (string)temp;
 			delete[] temp;
-			client->Receive((char*)MsgSize, sizeof(int), 0);
+			client->Receive((char*)&MsgSize, sizeof(int), 0);
 			temp = new char[MsgSize];
 			client->Receive(temp, MsgSize, 0);
 			temp[MsgSize - 1] = '\0';

@@ -2,7 +2,7 @@
 atomic<bool> offFlag(false);
 mutex mtx;;
 queue<vector<inputFile>> file_download;
-
+namespace fs = filesystem;
 using attoseconds = std::chrono::duration<long long, std::atto>;
 attoseconds as(1000);
 auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(as);
@@ -267,4 +267,17 @@ void receiveFile(vector<inputFile> files, CSocket& client, COORD current) {
 	for (int i = 0; i < files.size(); i++) {
 		output_files_stream[i].close();
 	}
+}
+
+void set_up() {
+	if (fs::create_directory("output")) {
+		cout << "Folder created successfully.\n";
+	}
+	else {
+		cout << "Folder already exists or could not be created.\n";
+	}
+	ifstream input;
+	string input_str = "input.txt";
+	input.open(input_str.c_str(), ios::app);
+	input.close();
 }

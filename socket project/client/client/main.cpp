@@ -2,22 +2,7 @@
 #include "afxsock.h"
 #include "File.h"
 #include "Menu.h"
-#include <filesystem>
 using namespace std;
-namespace fs = filesystem;
-
-void set_up() {
-	if (fs::create_directory("output")) {
-		cout << "Folder created successfully.\n";
-	}
-	else {
-		cout << "Folder already exists or could not be created.\n";
-	}
-	ifstream input;
-	string input_str = "input.txt";
-	input.open(input_str.c_str(), ios::app);
-	input.close();
-}
 
 HANDLE Mutex;
 
@@ -72,7 +57,7 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 		{
 			cout << "Ket noi toi Server thanh cong !!!" << endl << endl;
 			signal(SIGINT, signal_callback_handler);
-		
+			set_up();
 			COORD cursorPos = getCursorPosition();
 			cursorPos.Y += 1;
 
