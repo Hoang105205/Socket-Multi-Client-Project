@@ -14,17 +14,17 @@ struct ThreadParam {
 	vector<inputFile> file;
 };
 
-DWORD WINAPI send_file(LPVOID arg)
+DWORD WINAPI receive_and_send_file(LPVOID arg)
 {
-	ThreadParam* param = (ThreadParam*)arg;
-	SOCKET* hConnected = param->client;
-	vector<inputFile> files = param->file;
+	SOCKET* hConnected = (SOCKET*)arg;
+	vector<inputFile> files;
 	CSocket mysock;
 	//Chuyen ve lai CSocket
 	mysock.Attach(*hConnected);
-	sendFile(&mysock, files);
+	bool isConnected = true;
+	files = receive_files_needed_to_send_from_client(&mysock, isConnected);	
+	/*sendFile(&mysock, files);*/
 	delete hConnected;
-	delete param;
 	return 0;
 }
 
@@ -35,24 +35,30 @@ DWORD WINAPI serve_client(LPVOID arg)
 	CSocket mysock;
 	//Chuyen ve lai CSocket
 	mysock.Attach(*hConnected);
-
 	bool isConnected = true;
-	vector<inputFile> files;
+	int MsgSize;
+	char* temp;
 	do {
-		files.clear();
-		files = send_files_to_client(&mysock, isConnected);
-		if (isConnected == false) {
+		int receivebytes = mysock.Receive((char*)&MsgSize, sizeof(int), 0);
+		if (receivebytes <= 0) {
+			isConnected = false;
 			break;
 		}
 		else {
-			DWORD threadID;
-			HANDLE threadStatus;
-			ThreadParam* param = new ThreadParam();
-			param->client = hConnected;
-			param->file = files;
-			threadStatus = CreateThread(NULL, 0, send_file, param, 0, &threadID);
+			temp = new char[MsgSize + 1];
+			mysock.Receive(temp, MsgSize, 0);
+			temp[MsgSize] = '\0';
+			if (strcmp(temp, "start") == 0) {
+				SOCKET* new_Connected = new SOCKET();
+				//Chuyển đỏi CSocket thanh Socket
+				*new_Connected = mysock.Detach();
+				DWORD threadID;
+				HANDLE threadStatus;
+				threadStatus = CreateThread(NULL, 0, receive_and_send_file, new_Connected, 0, &threadID); 
+			}
 		}
 	} while (isConnected);		
+
 	delete hConnected;
 	return 0;
 }

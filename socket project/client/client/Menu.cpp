@@ -96,11 +96,21 @@ void readNewFileAdded(string filename, vector<inputFile>& fileList, vector<info>
 			vector<inputFile> List_temp;
 			while (!file.eof())
 			{
-				getline(file, line.name, ' ');
-				if (line.name == "") {
-					break;
+				string temp;
+				getline(file, temp, '\n');
+				if (temp == "") break;
+
+				stringstream sstream(temp);
+				size_t found = temp.find(' ');
+				if (found != string::npos) {
+					getline(sstream, line.name, ' ');
+					getline(sstream, line.priority);
 				}
-				getline(file, line.priority, '\n');
+				else
+				{
+					getline(sstream, line.name, ' ');
+					line.priority = "";
+				}
 				List_temp.push_back(line);
 			}
 			file.close();
@@ -137,7 +147,7 @@ void send_files_need_download_to_server(CSocket& client, vector<inputFile> files
 		client.Send(&MsgSize, sizeof(MsgSize), 0);
 		client.Send(files[i].priority.c_str(), files[i].priority.size(), 0);
 	}
-	const char* completed = "xong";
+	const char * completed = "xong";
 	MsgSize = strlen(completed);
 	client.Send(&MsgSize, sizeof(MsgSize), 0);
 	client.Send(completed, MsgSize, 0);
@@ -250,11 +260,14 @@ void receiveFile(vector<inputFile> files, CSocket& client, COORD current) {
 			this_thread::sleep_for(as);
 			delete[] temp;
 		}
+		index++;
+		if (index == files.size()) index = 0;
 		bool checkall = true;
 		for (int j = 0; j < files.size(); j++)
 		{
 			if (flag[j] == false)
 			{
+				index = j;
 				checkall = false;
 				break;
 			}
@@ -267,6 +280,8 @@ void receiveFile(vector<inputFile> files, CSocket& client, COORD current) {
 	for (int i = 0; i < files.size(); i++) {
 		output_files_stream[i].close();
 	}
+	delete[] flag;
+	delete[] download;
 }
 
 void set_up() {

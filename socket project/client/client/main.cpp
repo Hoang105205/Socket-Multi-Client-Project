@@ -4,8 +4,6 @@
 #include "Menu.h"
 using namespace std;
 
-HANDLE Mutex;
-
 struct ThreadParam{
 	SOCKET* client;
 	vector<inputFile> file;
@@ -19,9 +17,13 @@ DWORD WINAPI function_cal(LPVOID arg)
 	SOCKET* client = param->client;
 	CSocket ClientSocket;
 	ClientSocket.Attach(*client);
+	const char* start = "start";
+	int size = strlen(start);
+	ClientSocket.Send(&size, sizeof(int), 0);
+	ClientSocket.Send(start, size, 0);
 	send_files_need_download_to_server(ClientSocket, param->file);
-	receiveFile(param->file, ClientSocket, param->cursor);
-	delete client;
+	/*receiveFile(param->file, ClientSocket, param->cursor);*/
+	
 	delete param;
 	return 0;
 }
@@ -58,18 +60,13 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 			cout << "Ket noi toi Server thanh cong !!!" << endl << endl;
 			signal(SIGINT, signal_callback_handler);
 			set_up();
-			COORD cursorPos = getCursorPosition();
-			cursorPos.Y += 1;
-
 			vector<info> files = ReceiveFiles_canbedownloaded(ClientSocket);
 			vector<inputFile> main_List = InitListIfExisted("input.txt");
 			string Level[3] = { "CRITICAL", "HIGH", "NORMAL" };
 			thread th(readNewFileAdded, "input.txt", ref(main_List), files, Level);
-			Mutex = CreateMutex(NULL, FALSE, NULL);
 
-			do {
-				if (file_download.size() != 0) {
-					WaitForSingleObject(Mutex, INFINITE);
+			while (1){
+				if (!file_download.empty()) {
 					DWORD threadID;
 					HANDLE threadStatus;
 					SOCKET* hConnected = new SOCKET();
@@ -80,11 +77,9 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 					param->cursor = getCursorPosition();
 					threadStatus = CreateThread(NULL, 0, function_cal, param, 0, &threadID);
 					file_download.pop();
-					ReleaseMutex(Mutex);
 				}
-			} while (1);
+			}
 
-			CloseHandle(Mutex);
 			offFlag = true;
 			th.detach();
 

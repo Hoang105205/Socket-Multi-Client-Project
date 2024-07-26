@@ -92,7 +92,7 @@ void sendFile(CSocket* client, vector<inputFile> files)
     }
     while (1) {
         if (flag[index] == false) {
-            if (files[index].priority == "Critical") {
+            if (files[index].priority == "CRITICAL") {
                 for (int i = 0; i < 10; i++) {
                     temp = new char[MsgSize];
                     input_files_stream[index].read(temp, MsgSize);
@@ -109,7 +109,7 @@ void sendFile(CSocket* client, vector<inputFile> files)
                     }
                 }
             }
-            else if (files[index].priority == "High") {
+            else if (files[index].priority == "HIGH") {
                 for (int i = 0; i < 4; i++) {
                     temp = new char[MsgSize];
                     input_files_stream[index].read(temp, MsgSize);
@@ -126,7 +126,7 @@ void sendFile(CSocket* client, vector<inputFile> files)
                     }
                 }
             }
-            else if (files[index].priority == "Normal") {
+            else if (files[index].priority == "NORMAL") {
                 temp = new char[MsgSize];
                 input_files_stream[index].read(temp, MsgSize);
                 client->Send(&MsgSize, sizeof(MsgSize), 0);
