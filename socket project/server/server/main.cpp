@@ -31,7 +31,7 @@ DWORD WINAPI send_file(LPVOID arg)
 
 DWORD WINAPI serve_client(LPVOID arg)
 {
-	SOCKET* hConnected = (SOCKET*)arg;;
+	SOCKET* hConnected = (SOCKET*)arg;
 	CSocket mysock;
 	//Chuyen ve lai CSocket
 	mysock.Attach(*hConnected);
@@ -45,10 +45,12 @@ DWORD WINAPI serve_client(LPVOID arg)
 			break;
 		}
 		else {
+			DWORD threadID;
+			HANDLE threadStatus;
 			ThreadParam* param = new ThreadParam();
 			param->client = hConnected;
 			param->file = files;
-			CreateThread(NULL, 0, send_file, param, 0, NULL);
+			threadStatus = CreateThread(NULL, 0, send_file, param, 0, &threadID);
 		}
 	} while (isConnected);		
 	delete hConnected;
