@@ -21,11 +21,17 @@ DWORD WINAPI function_cal(LPVOID arg)
 	int size = strlen(start);
 	ClientSocket.Send(&size, sizeof(int), 0);
 	ClientSocket.Send(start, size, 0);
-	send_files_need_download_to_server(ClientSocket, param->file);
 	/*receiveFile(param->file, ClientSocket, param->cursor);*/
 	
 	delete param;
 	return 0;
+}
+
+void send_start(CSocket &client) {
+	const char* start = "start";
+	int size = strlen(start);
+	client.Send(&size, sizeof(int), 0);
+	client.Send(start, size, 0);
 }
 
 int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
@@ -55,7 +61,7 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 		ClientSocket.Create();
 
 		// Ket noi den Server
-		if (ClientSocket.Connect(_T("192.168.1.83"), 1234) != 0)
+		if (ClientSocket.Connect(_T("192.168.1.84"), 1234) != 0)
 		{
 			cout << "Ket noi toi Server thanh cong !!!" << endl << endl;
 			signal(SIGINT, signal_callback_handler);
@@ -64,18 +70,12 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 			vector<inputFile> main_List = InitListIfExisted("input.txt");
 			string Level[3] = { "CRITICAL", "HIGH", "NORMAL" };
 			thread th(readNewFileAdded, "input.txt", ref(main_List), files, Level);
-
+			
 			while (1){
 				if (!file_download.empty()) {
-					DWORD threadID;
-					HANDLE threadStatus;
-					SOCKET* hConnected = new SOCKET();
-					*hConnected = ClientSocket.Detach();
-					ThreadParam* param = new ThreadParam();
-					param->client = hConnected;
-					param->file = file_download.front();
-					param->cursor = getCursorPosition();
-					threadStatus = CreateThread(NULL, 0, function_cal, param, 0, &threadID);
+					vector<inputFile> files = file_download.front();
+					send_start(ClientSocket);
+					send_files_need_download_to_server(ClientSocket, files);
 					file_download.pop();
 				}
 			}
