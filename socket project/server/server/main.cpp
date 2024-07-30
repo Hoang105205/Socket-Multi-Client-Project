@@ -14,43 +14,189 @@ struct ThreadParam {
 	vector<inputFile> file;
 };
 
-DWORD WINAPI send_file(LPVOID arg)
-{
-	ThreadParam* param = (ThreadParam*)arg;
-	SOCKET* hConnected = param->client;
-	vector<inputFile> files = param->file;
-	CSocket mysock;
-	//Chuyen ve lai CSocket
-	mysock.Attach(*hConnected);
-	sendFile(&mysock, files);
-	delete hConnected;
-	delete param;
-	return 0;
+struct File {
+	long long position = 0;
+	string filename = "";
+	string priority = "";
+	bool send_all_bytes = false;
+};
+
+vector<File> receive_files_needed_to_send_from_client_2(CSocket* client, bool& isConnected) {
+	int MsgSize;
+	char* temp_msg;
+	vector<File> files;
+	while (isConnected) {
+		File temp_inputFile;
+		int receive_bytes = client->Receive((char*)&MsgSize, sizeof(int), 0);
+		if (receive_bytes <= 0) {  // Client đã ngắt kết nối hoặc có lỗi
+			isConnected = false;  // Đặt cờ thành false để thoát vòng lặp
+			break;
+		}
+		temp_msg = new char[MsgSize + 1];
+		client->Receive(temp_msg, MsgSize, 0);
+		temp_msg[MsgSize] = '\0';
+		if (strcmp(temp_msg, "xong") != 0) {
+			temp_inputFile.filename = (string)temp_msg;
+			delete[] temp_msg;
+			client->Receive((char*)&MsgSize, sizeof(int), 0);
+			temp_msg = new char[MsgSize + 1];
+			client->Receive(temp_msg, MsgSize, 0);
+			temp_msg[MsgSize] = '\0';
+			temp_inputFile.position = stoll((string)temp_msg);
+			delete[] temp_msg;
+			client->Receive((char*)&MsgSize, sizeof(int), 0);
+			temp_msg = new char[MsgSize + 1];
+			client->Receive(temp_msg, MsgSize, 0);
+			temp_msg[MsgSize] = '\0';
+			temp_inputFile.priority = (string)temp_msg;
+			delete[] temp_msg;
+			files.push_back(temp_inputFile);
+		}
+		else if (strcmp(temp_msg, "xong") == 0) {
+			delete[] temp_msg;
+			break;
+		}
+	}
+	return files;
 }
+
+long long get_file_size(ifstream *ifstream_filename) {
+	ifstream_filename->seekg(0, ios::end);
+	return ifstream_filename->tellg();
+}
+
+void sendFile(CSocket* client, vector<File> files)
+{
+
+	int MsgSize = 1048576;
+	int need_to_send;
+	char* temp;
+
+	for (int i = 0; i < files.size(); i++) {
+		ifstream fin;
+		fin.open(files[i].filename.c_str(), ios::binary);
+		if (fin) {
+			long long file_size = get_file_size(&fin);
+			long long cur_pos = files[i].position;
+			if (file_size - files[i].position < MsgSize) {
+				long long bytes_left = file_size - files[i].position;
+				fin.seekg(cur_pos, ios::beg);
+				temp = new char[bytes_left + 1];
+				fin.read(temp, bytes_left);
+				//bit tin hieu; 1 = done; 0 = undone
+				temp[bytes_left] = '1';
+				need_to_send = bytes_left + 1;
+				client->Send(&need_to_send, sizeof(need_to_send), 0);
+				client->Send(temp, need_to_send, 0);
+				files[i].send_all_bytes = true;
+				delete[] temp;
+			}
+			else {
+				if (files[i].priority == "CRITICAL") {
+					for (int i = 0; i < 10; i++) {
+						if (cur_pos + MsgSize >= file_size) {
+							long long bytes_left = file_size - cur_pos;
+							fin.seekg(cur_pos, ios::beg);
+							temp = new char[bytes_left + 1];
+							fin.read(temp, bytes_left);
+							temp[bytes_left] = '1';
+							need_to_send = bytes_left + 1;
+							client->Send(&need_to_send, sizeof(need_to_send), 0);
+							client->Send(temp, need_to_send, 0);
+							files[i].send_all_bytes = true;
+							delete[] temp;
+						}
+						else {
+							fin.seekg(cur_pos, ios::beg);
+							temp = new char[MsgSize + 1];
+							fin.read(temp, MsgSize);
+							temp[MsgSize] = '0';
+							need_to_send = MsgSize + 1;
+							client->Send(&need_to_send, sizeof(need_to_send), 0);
+							client->Send(temp, need_to_send, 0);
+							delete[] temp;
+						}
+						cur_pos += MsgSize;
+					}
+				}
+				else if (files[i].priority == "HIGH") {
+					for (int i = 0; i < 4; i++) {
+						if (cur_pos + MsgSize >= file_size) {
+							long long bytes_left = file_size - cur_pos;
+							fin.seekg(cur_pos, ios::beg);
+							temp = new char[bytes_left + 1];
+							fin.read(temp, bytes_left);
+							temp[bytes_left] = '1';
+							need_to_send = bytes_left + 1;
+							client->Send(&need_to_send, sizeof(need_to_send), 0);
+							client->Send(temp, need_to_send, 0);
+							files[i].send_all_bytes = true;
+							delete[] temp;
+						}
+						else {
+							fin.seekg(cur_pos, ios::beg);
+							temp = new char[MsgSize + 1];
+							fin.read(temp, MsgSize);
+							temp[MsgSize] = '0';
+							need_to_send = MsgSize + 1;
+							client->Send(&need_to_send, sizeof(need_to_send), 0);
+							client->Send(temp, need_to_send, 0);
+							delete[] temp;
+						}
+						cur_pos += MsgSize;
+					}
+				}
+				else if (files[i].priority == "NORMAL") {
+					if (cur_pos + MsgSize >= file_size) {
+						long long bytes_left = file_size - cur_pos;
+						fin.seekg(cur_pos, ios::beg);
+						temp = new char[bytes_left + 1];
+						fin.read(temp, bytes_left);
+						temp[bytes_left] = '1';
+						need_to_send = bytes_left + 1;
+						client->Send(&need_to_send, sizeof(need_to_send), 0);
+						client->Send(temp, need_to_send, 0);
+						files[i].send_all_bytes = true;
+						delete[] temp;
+					}
+					else {
+						fin.seekg(cur_pos, ios::beg);
+						temp = new char[MsgSize + 1];
+						fin.read(temp, MsgSize);
+						temp[MsgSize] = '0';
+						need_to_send = MsgSize + 1;
+						client->Send(&need_to_send, sizeof(need_to_send), 0);
+						client->Send(temp, need_to_send, 0);
+						delete[] temp;
+					}
+					cur_pos += MsgSize;
+				}
+
+			}
+		}
+		fin.close();
+	}
+}
+
+
 
 
 DWORD WINAPI serve_client(LPVOID arg)
 {
-	SOCKET* hConnected = (SOCKET*)arg;;
+	SOCKET* hConnected = (SOCKET*)arg;
 	CSocket mysock;
-	//Chuyen ve lai CSocket
 	mysock.Attach(*hConnected);
+	//Chuyen ve lai CSocket
 
 	bool isConnected = true;
-	vector<inputFile> files;
+	vector<File> files;
+	
 	do {
 		files.clear();
-		files = send_files_to_client(&mysock, isConnected);
-		if (isConnected == false) {
-			break;
-		}
-		else {
-			ThreadParam* param = new ThreadParam();
-			param->client = hConnected;
-			param->file = files;
-			CreateThread(NULL, 0, send_file, param, 0, NULL);
-		}
-	} while (isConnected);		
+		files = receive_files_needed_to_send_from_client_2(&mysock, isConnected);
+		sendFile(&mysock, files);
+	} while (isConnected);
+
 	delete hConnected;
 	return 0;
 }

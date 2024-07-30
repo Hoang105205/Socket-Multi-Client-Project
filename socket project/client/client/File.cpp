@@ -29,32 +29,6 @@ bool isFileEmpty(string filename) {
 	return (fileSize == 0) ? true : false;
 }
 
-void writeInfo(char infos[])
-{
-	ofstream f;
-	f.open("input.txt", ios::app);
-	if (!f.is_open())
-	{
-		cout << "Khong mo duoc file";
-		return;
-	}
-	if (isFileEmpty("input.txt") == false)
-	{
-		f << endl;
-	}
-	for (int i = 0; i < strlen(infos); i++)
-	{
-		if (infos[i] == ',')
-		{
-			f << endl;
-			i++;
-		}
-		f << infos[i];
-	}
-	f.close();
-	return;
-}
-
 vector<inputFile> InitListIfExisted(string filename)
 {
 	vector<inputFile> List_temp;
@@ -66,11 +40,21 @@ vector<inputFile> InitListIfExisted(string filename)
 	inputFile line;
 	while (!f.eof())
 	{
-		getline(f, line.name, ' ');
-		if (line.name == "") {
-			break;
+		string temp;
+		getline(f, temp, '\n');
+		if (temp == "") break;
+
+		stringstream sstream(temp);
+		size_t found = temp.find(' ');
+		if (found != string::npos) {
+			getline(sstream, line.name, ' ');
+			getline(sstream, line.priority);
 		}
-		getline(f, line.priority, '\n');
+		else
+		{
+			getline(sstream, line.name, ' ');
+			line.priority = "";
+		}
 		List_temp.push_back(line);
 	}
 	f.close();

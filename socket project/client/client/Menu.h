@@ -10,6 +10,8 @@
 #include <iomanip>
 #include <signal.h>
 #include <queue>
+#include <filesystem>
+
 using namespace std;
 struct info {
 	string name;
@@ -27,3 +29,4 @@ void readNewFileAdded(string filename, vector<inputFile>& fileList, vector<info>
 void send_files_need_download_to_server(CSocket& client, vector<inputFile> filename);
 void receiveFile(vector<inputFile> files, CSocket& client, COORD current);
 vector<int> receiveFilesize(CSocket& client);
+void set_up();

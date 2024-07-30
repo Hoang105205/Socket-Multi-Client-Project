@@ -61,7 +61,7 @@ void sendFilesize(CSocket* client, vector<inputFile> files)
     int MsgSize;
     for (int i = 0; i < files.size(); i++)
     {
-        f.open(files[i].name, ios::binary);
+        f.open(files[i].name.c_str(), ios::binary);
         f.seekg(0, ios::end);
         size = f.tellg();
         temp = to_string(size);
@@ -74,92 +74,4 @@ void sendFilesize(CSocket* client, vector<inputFile> files)
     MsgSize = strlen(stopflag);
     client->Send(&MsgSize, sizeof(int), 0);
     client->Send(stopflag, MsgSize, 0);
-}
-
-void sendFile(CSocket* client, vector<inputFile> files)
-{
-    sendFilesize(client, files);
-    ifstream* input_files_stream = new ifstream[files.size()];
-    for (int i = 0; i < files.size(); i++) {
-        input_files_stream[i].open(files[i].name, ios::binary);
-    }
-    int MsgSize = 1048576;
-    char* temp;
-    int index = 0;
-    bool* flag = new bool[files.size()];
-    for (int i = 0; i < files.size(); i++) {
-        flag[i] = false;
-    }
-    while (1) {
-        if (flag[index] == false) {
-            if (files[index].priority == "Critical") {
-                for (int i = 0; i < 10; i++) {
-                    temp = new char[MsgSize];
-                    input_files_stream[index].read(temp, MsgSize);
-                    client->Send(&MsgSize, sizeof(MsgSize), 0);
-                    client->Send(temp, MsgSize, 0);
-                    delete[] temp;
-                    if (check_finish(input_files_stream[index]))
-                    {
-                        flag[index] = true;
-                        const char* complete = "Completed";
-                        int size = strlen(complete);
-                        client->Send(&size, sizeof(size), 0);
-                        client->Send(complete, size, 0);
-                    }
-                }
-            }
-            else if (files[index].priority == "High") {
-                for (int i = 0; i < 4; i++) {
-                    temp = new char[MsgSize];
-                    input_files_stream[index].read(temp, MsgSize);
-                    client->Send(&MsgSize, sizeof(MsgSize), 0);
-                    client->Send(temp, MsgSize, 0);
-                    delete[] temp;
-                    if (check_finish(input_files_stream[index]))
-                    {
-                        flag[index] = true;
-                        const char* complete = "Completed";
-                        int size = strlen(complete);
-                        client->Send(&size, sizeof(size), 0);
-                        client->Send(complete, size, 0);
-                    }
-                }
-            }
-            else if (files[index].priority == "Normal") {
-                temp = new char[MsgSize];
-                input_files_stream[index].read(temp, MsgSize);
-                client->Send(&MsgSize, sizeof(MsgSize), 0);
-                client->Send(temp, MsgSize, 0);
-                delete[] temp;
-                if (check_finish(input_files_stream[index]))
-                {
-                    flag[index] = true;
-                    const char* complete = "Completed";
-                    int size = strlen(complete);
-                    client->Send(&size, sizeof(size), 0);
-                    client->Send(complete, size, 0);
-                }
-            }
-        }
-        index++;
-        if (index == files.size()) index = 0;
-        bool check_all = true;
-        for (int i = 0; i < files.size(); i++) {
-            if (flag[i] == false) {
-                index = i;
-                check_all = false;
-                break;
-            }
-        }
-
-        if (check_all == true) {
-            break;
-        }
-    }
-    for (int i = 0; i < files.size(); i++) {
-        input_files_stream[i].close();
-    }
-    delete[] input_files_stream;
-	delete[] flag;
 }

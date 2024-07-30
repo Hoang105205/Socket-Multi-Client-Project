@@ -2,7 +2,7 @@
 atomic<bool> offFlag(false);
 mutex mtx;;
 queue<vector<inputFile>> file_download;
-
+namespace fs = filesystem;
 using attoseconds = std::chrono::duration<long long, std::atto>;
 attoseconds as(1000);
 auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(as);
@@ -96,11 +96,21 @@ void readNewFileAdded(string filename, vector<inputFile>& fileList, vector<info>
 			vector<inputFile> List_temp;
 			while (!file.eof())
 			{
-				getline(file, line.name, ' ');
-				if (line.name == "") {
-					break;
+				string temp;
+				getline(file, temp, '\n');
+				if (temp == "") break;
+
+				stringstream sstream(temp);
+				size_t found = temp.find(' ');
+				if (found != string::npos) {
+					getline(sstream, line.name, ' ');
+					getline(sstream, line.priority);
 				}
-				getline(file, line.priority, '\n');
+				else
+				{
+					getline(sstream, line.name, ' ');
+					line.priority = "";
+				}
 				List_temp.push_back(line);
 			}
 			file.close();
@@ -137,7 +147,7 @@ void send_files_need_download_to_server(CSocket& client, vector<inputFile> files
 		client.Send(&MsgSize, sizeof(MsgSize), 0);
 		client.Send(files[i].priority.c_str(), files[i].priority.size(), 0);
 	}
-	const char* completed = "xong";
+	const char * completed = "xong";
 	MsgSize = strlen(completed);
 	client.Send(&MsgSize, sizeof(MsgSize), 0);
 	client.Send(completed, MsgSize, 0);
@@ -167,7 +177,7 @@ vector<int> receiveFilesize(CSocket& client)
 	return file_size;
 }
 
-void receiveFile(vector<inputFile> files, CSocket& client, COORD current) {
+void receiveFile(vector<inputFile>& files, CSocket& client, COORD current) {
 	vector<int> file_size = receiveFilesize(client);
 	vector<float> percent;
 	for (int i = 0; i < file_size.size(); i++)
@@ -175,14 +185,12 @@ void receiveFile(vector<inputFile> files, CSocket& client, COORD current) {
 		float temp = static_cast<float>(1048576) / file_size[i];
 		percent.push_back(temp);
 	}
-	vector<ofstream> output_files_stream;
 	vector<COORD> temp_cursor;
 	for (int i = 0; i < files.size(); i++) {
 		setCursorPosition(current.X, current.Y + i);
 		cout << "Downloading " << files[i].name << " ...";
 		temp_cursor.push_back(getCursorPosition());
 		cout << endl;
-		output_files_stream[i].open(files[i].name, ios::binary);
 	}
 	int* download = new int[files.size()];
 	for (int i = 0; i < files.size(); i++)
@@ -192,28 +200,33 @@ void receiveFile(vector<inputFile> files, CSocket& client, COORD current) {
 	int MsgSize;
 	char* temp;
 	int index = 0;
-	bool* flag = new bool[files.size()];
-	for (int i = 0; i < files.size(); i++)
-	{
-		flag[i] = false;
-	}
-	while (1) {
+	ofstream fout;
+	while (index < files.size()) {
+		if (files[index].Newfile == true)
+		{
+			fout.open(files[index].name.c_str(), ios::binary);
+			files[index].Newfile = false;
+		}
+		else
+		{
+			fout.open(files[index].name.c_str(), ios::binary, ios::app);
+		}
 		if (files[index].priority == "CRITICAL") {
 			for (int i = 0; i < 10; i++) {
 				client.Receive((char*)&MsgSize, sizeof(MsgSize), 0);
 				temp = new char[MsgSize];
 				client.Receive(temp, MsgSize, 0);
-				if (temp == "completed")
-				{
-					flag[index] = true;
-					break;
-				}
-				output_files_stream[i].write(temp, MsgSize);
-				SetCursorPos(temp_cursor[index].X + 5,temp_cursor[index].Y);
+				fout.write(temp, MsgSize - 1);
+				SetCursorPos(temp_cursor[index].X + 5, temp_cursor[index].Y);
 				download[index] += percent[index];
 				cout << fixed << setprecision(0) << download[index] * 100 << "%" << flush;
 				this_thread::sleep_for(as);
 				delete[] temp;
+				if (temp[MsgSize - 1] == '1')
+				{
+					files[index].send_all_bytes = true;
+					break;
+				}
 			}
 		}
 		else if (files[index].priority == "HIGH") {
@@ -221,50 +234,49 @@ void receiveFile(vector<inputFile> files, CSocket& client, COORD current) {
 				client.Receive((char*)&MsgSize, sizeof(MsgSize), 0);
 				temp = new char[MsgSize];
 				client.Receive(temp, MsgSize, 0);
-				if (temp == "completed")
-				{
-					flag[index] = true;
-					break;
-				}
-				output_files_stream[i].write(temp, MsgSize);
+				fout.write(temp, MsgSize - 1);
 				SetCursorPos(temp_cursor[index].X + 5, temp_cursor[index].Y);
 				download[index] += percent[index];
 				cout << fixed << setprecision(0) << download[index] * 100 << "%" << flush;
 				this_thread::sleep_for(as);
 				delete[] temp;
+				if (temp[MsgSize - 1] == '1')
+				{
+					files[index].send_all_bytes = true;
+					break;
+				}
 			}
 		}
 		else if (files[index].priority == "NORMAL") {
 			client.Receive((char*)&MsgSize, sizeof(MsgSize), 0);
 			temp = new char[MsgSize];
 			client.Receive(temp, MsgSize, 0);
-			if (temp == "completed")
-			{
-				flag[index] = true;
-				break;
-			}
-			output_files_stream[index].write(temp, MsgSize);
+			fout.write(temp, MsgSize - 1);
 			SetCursorPos(temp_cursor[index].X + 5, temp_cursor[index].Y);
 			download[index] += percent[index];
 			cout << fixed << setprecision(0) << download[index] * 100 << "%" << flush;
 			this_thread::sleep_for(as);
 			delete[] temp;
-		}
-		bool checkall = true;
-		for (int j = 0; j < files.size(); j++)
-		{
-			if (flag[j] == false)
+			if (temp[MsgSize - 1] == '1')
 			{
-				checkall = false;
-				break;
+				files[index].send_all_bytes = true;
 			}
 		}
-		if (checkall == true)
-		{
-			break;
-		}
+		index++;
+		fout.close();
 	}
-	for (int i = 0; i < files.size(); i++) {
-		output_files_stream[i].close();
+	delete[] download;
+}
+
+void set_up() {
+	if (fs::create_directory("output")) {
+		cout << "Folder created successfully.\n";
 	}
+	else {
+		cout << "Folder already exists or could not be created.\n";
+	}
+	ifstream input;
+	string input_str = "input.txt";
+	input.open(input_str.c_str(), ios::app);
+	input.close();
 }

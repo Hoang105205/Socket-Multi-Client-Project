@@ -9,13 +9,15 @@
 #include <fstream>
 #include <Windows.h>
 #include <condition_variable>
+#include <sstream>
 using namespace std;
 struct inputFile {
-	string name;
-	string priority;
+	bool Newfile = true;
+	string name = "";
+	string priority = "";
+	bool send_all_bytes = false;
 };
 
-void writeInfo(char infos[]);
 bool isFileEmpty(string filename);
 void setCursorPosition(int x, int y);
 COORD getCursorPosition();
