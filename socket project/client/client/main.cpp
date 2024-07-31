@@ -11,6 +11,52 @@ struct ThreadParam{
 };
 
 
+struct File {
+	bool new_file = true;
+	string filename = "";
+	string priority = "";
+	bool send_all_bytes = false;
+};
+
+void sort_list_files(vector<File> &files) {
+	//kick nhung file da tai xong
+	for (int i = files.size() - 1; i >= 0; i--) {
+		if (files[i].send_all_bytes == true) {
+			files.pop_back();
+		}
+	}
+
+
+	for (int i = 0; i < files.size() - 1; i++) {
+		for (int j = i + 1; j < files.size(); j++) {
+			if (files[i].filename == files[j].filename) {
+				if (files[i].priority < files[j].priority) {
+					if (j != files.size() - 1) {
+						//day phan tu j xuong cuoi vector
+						for (int k = j; k < files.size() - 1; k++) {
+							swap(files[k], files[k + 1]);
+						}
+					}
+					files.pop_back();
+				}
+				else if (files[i].priority >= files[j].priority) {
+					if (files[i].new_file != true) {
+						files[j].new_file = files[i].new_file;
+					}
+					swap(files[i], files[j]);
+					if (j != files.size() - 1) {
+						//day phan tu j xuong cuoi vector
+						for (int k = j; k < files.size() - 1; k++) {
+							swap(files[k], files[k + 1]);
+						}
+					}
+					files.pop_back();
+				}
+			}
+		}
+	}
+}
+
 DWORD WINAPI function_cal(LPVOID arg)
 {
 	ThreadParam* param = (ThreadParam*)arg;

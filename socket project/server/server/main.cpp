@@ -69,7 +69,7 @@ void sendFile(CSocket* client, vector<File> files)
 {
 
 	int MsgSize = 1048576;
-	long long need_to_send;
+	int need_to_send;
 	char* temp;
 
 	for (int i = 0; i < files.size(); i++) {
