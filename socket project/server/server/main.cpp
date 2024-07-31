@@ -60,33 +60,63 @@ vector<File> receive_files_needed_to_send_from_client_2(CSocket* client, bool& i
 	return files;
 }
 
+void sendFilesize(CSocket* client, vector<File> files)
+{
+	ifstream f;
+	long long size;
+	string temp;
+	int MsgSize;
+	for (int i = 0; i < files.size(); i++)
+	{
+		f.open(files[i].filename.c_str(), ios::binary);
+		f.seekg(0, ios::end);
+		size = f.tellg();
+		temp = to_string(size);
+		MsgSize = temp.length();
+		client->Send(&MsgSize, sizeof(int), 0);
+		client->Send(temp.c_str(), MsgSize, 0);
+		f.close();
+	}
+	const char* stopflag = "completed";
+	MsgSize = strlen(stopflag);
+	client->Send(&MsgSize, sizeof(int), 0);
+	client->Send(stopflag, MsgSize, 0);
+}
+
+
+
 long long get_file_size(ifstream *ifstream_filename) {
 	ifstream_filename->seekg(0, ios::end);
 	return ifstream_filename->tellg();
 }
 
-void sendFile(CSocket* client, vector<File> files)
+void sendFile(CSocket* client, vector<File> &files)
 {
 
 	int MsgSize = 1048576;
 	int need_to_send;
 	char* temp;
+	int bytes_left;
+	sendFilesize(client, files);
+
 
 	for (int i = 0; i < files.size(); i++) {
 		ifstream fin;
-		fin.open(files[i].filename, ios::binary);
+		fin.open(files[i].filename.c_str(), ios::binary);
 		if (fin) {
 			long long file_size = get_file_size(&fin);
 			long long cur_pos = files[i].position;
 			if (file_size - files[i].position < MsgSize) {
-				long long bytes_left = file_size - files[i].position;
+				bytes_left = file_size - files[i].position;
 				fin.seekg(cur_pos, ios::beg);
 				temp = new char[bytes_left + 1];
 				fin.read(temp, bytes_left);
 				//bit tin hieu; 1 = done; 0 = undone
 				temp[bytes_left] = '1';
 				need_to_send = bytes_left + 1;
+
 				client->Send(&need_to_send, sizeof(need_to_send), 0);
+
 				client->Send(temp, need_to_send, 0);
 				files[i].send_all_bytes = true;
 				delete[] temp;
@@ -95,7 +125,7 @@ void sendFile(CSocket* client, vector<File> files)
 				if (files[i].priority == "CRITICAL") {
 					for (int i = 0; i < 10; i++) {
 						if (cur_pos + MsgSize >= file_size) {
-							long long bytes_left = file_size - cur_pos;
+							bytes_left = file_size - cur_pos;
 							fin.seekg(cur_pos, ios::beg);
 							temp = new char[bytes_left + 1];
 							fin.read(temp, bytes_left);
@@ -104,7 +134,9 @@ void sendFile(CSocket* client, vector<File> files)
 							client->Send(&need_to_send, sizeof(need_to_send), 0);
 							client->Send(temp, need_to_send, 0);
 							files[i].send_all_bytes = true;
+							cur_pos += MsgSize;
 							delete[] temp;
+							break;
 						}
 						else {
 							fin.seekg(cur_pos, ios::beg);
@@ -114,15 +146,15 @@ void sendFile(CSocket* client, vector<File> files)
 							need_to_send = MsgSize + 1;
 							client->Send(&need_to_send, sizeof(need_to_send), 0);
 							client->Send(temp, need_to_send, 0);
+							cur_pos += MsgSize;
 							delete[] temp;
 						}
-						cur_pos += MsgSize;
 					}
 				}
 				else if (files[i].priority == "HIGH") {
 					for (int i = 0; i < 4; i++) {
 						if (cur_pos + MsgSize >= file_size) {
-							long long bytes_left = file_size - cur_pos;
+							bytes_left = file_size - cur_pos;
 							fin.seekg(cur_pos, ios::beg);
 							temp = new char[bytes_left + 1];
 							fin.read(temp, bytes_left);
@@ -132,6 +164,8 @@ void sendFile(CSocket* client, vector<File> files)
 							client->Send(temp, need_to_send, 0);
 							files[i].send_all_bytes = true;
 							delete[] temp;
+							cur_pos += MsgSize;
+							break;
 						}
 						else {
 							fin.seekg(cur_pos, ios::beg);
@@ -142,13 +176,13 @@ void sendFile(CSocket* client, vector<File> files)
 							client->Send(&need_to_send, sizeof(need_to_send), 0);
 							client->Send(temp, need_to_send, 0);
 							delete[] temp;
+							cur_pos += MsgSize;
 						}
-						cur_pos += MsgSize;
 					}
 				}
 				else if (files[i].priority == "NORMAL") {
 					if (cur_pos + MsgSize >= file_size) {
-						long long bytes_left = file_size - cur_pos;
+						bytes_left = file_size - cur_pos;
 						fin.seekg(cur_pos, ios::beg);
 						temp = new char[bytes_left + 1];
 						fin.read(temp, bytes_left);
@@ -158,6 +192,7 @@ void sendFile(CSocket* client, vector<File> files)
 						client->Send(temp, need_to_send, 0);
 						files[i].send_all_bytes = true;
 						delete[] temp;
+						cur_pos += MsgSize;
 					}
 					else {
 						fin.seekg(cur_pos, ios::beg);
@@ -168,8 +203,8 @@ void sendFile(CSocket* client, vector<File> files)
 						client->Send(&need_to_send, sizeof(need_to_send), 0);
 						client->Send(temp, need_to_send, 0);
 						delete[] temp;
+						cur_pos += MsgSize;
 					}
-					cur_pos += MsgSize;
 				}
 
 			}
@@ -191,10 +226,29 @@ DWORD WINAPI serve_client(LPVOID arg)
 	bool isConnected = true;
 	vector<File> files;
 	
+
+	int MsgSize;
+	char* temp;
 	do {
 		files.clear();
+		/*int receive_bytes = mysock.Receive((char*)&MsgSize, sizeof(int), 0);
+		if (receive_bytes <= 0) {
+			isConnected = false;
+			break;
+		}
+		else {
+			temp = new char[MsgSize + 1];
+			mysock.Receive(temp, MsgSize, 0);
+			temp[MsgSize] = '\0';
+			if (strcmp(temp, "start") == 0) {
+				files = receive_files_needed_to_send_from_client_2(&mysock, isConnected);
+				sendFile(&mysock, files);
+			}
+		}*/
+
 		files = receive_files_needed_to_send_from_client_2(&mysock, isConnected);
 		sendFile(&mysock, files);
+
 	} while (isConnected);
 
 	delete hConnected;

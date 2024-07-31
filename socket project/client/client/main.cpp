@@ -11,17 +11,17 @@ struct ThreadParam{
 };
 
 
-struct File {
-	bool new_file = true;
-	string filename = "";
-	string priority = "";
-	bool send_all_bytes = false;
-};
+
 
 void sort_list_files(vector<File> &files) {
 	//kick nhung file da tai xong
 	for (int i = files.size() - 1; i >= 0; i--) {
 		if (files[i].send_all_bytes == true) {
+			if (i != files.size() - 1) {
+				for (int k = i; k < files.size() - 1; k++) {
+					swap(files[k], files[k + 1]);
+				}
+			}
 			files.pop_back();
 		}
 	}
@@ -40,9 +40,6 @@ void sort_list_files(vector<File> &files) {
 					files.pop_back();
 				}
 				else if (files[i].priority >= files[j].priority) {
-					if (files[i].new_file != true) {
-						files[j].new_file = files[i].new_file;
-					}
 					swap(files[i], files[j]);
 					if (j != files.size() - 1) {
 						//day phan tu j xuong cuoi vector
@@ -80,6 +77,19 @@ void send_start(CSocket &client) {
 	client.Send(start, size, 0);
 }
 
+void merge_list(vector<File>& files, vector<inputFile> input) {
+	for (int i = 0; i < input.size(); i++) {
+		File put;
+		put.filename = input[i].name;
+		put.priority = input[i].priority;
+		put.new_file = true;
+		put.send_all_bytes = false;
+		put.position = 0;
+		files.push_back(put);
+	}
+	sort_list_files(files);
+}
+
 int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 {
 
@@ -114,20 +124,38 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 			set_up();
 			vector<info> files = ReceiveFiles_canbedownloaded(ClientSocket);
 			vector<inputFile> main_List = InitListIfExisted("input.txt");
-			string Level[3] = { "CRITICAL", "HIGH", "NORMAL" };
-			thread th(readNewFileAdded, "input.txt", ref(main_List), files, Level);
+			/*string Level[3] = { "CRITICAL", "HIGH", "NORMAL" };
+			thread th(readNewFileAdded, "input.txt", ref(main_List), files, Level);*/
 			
-			while (1){
+
+			vector<File> list;
+			/*while (1){
 				if (!file_download.empty()) {
-					vector<inputFile> files = file_download.front();
+					vector<inputFile> input = file_download.front();
+					merge_list(list, input);
 					send_start(ClientSocket);
-					send_files_need_download_to_server(ClientSocket, files);
+					send_files_need_download_to_server(ClientSocket, list);
+					receiveFile(list, ClientSocket, getCursorPosition());
 					file_download.pop();
 				}
+			}*/
+			File a;
+			a.filename = "50MB.zip";
+			a.new_file = true;
+			a.position = 0;
+			a.priority = "CRITICAL";
+			a.send_all_bytes = false;
+			list.push_back(a);
+			vector<inputFile> b;
+			while (!list.empty()) {
+				send_files_need_download_to_server(ClientSocket, list);
+				receiveFile(list, ClientSocket, getCursorPosition());
+
+				merge_list(list, b);
 			}
 
-			offFlag = true;
-			th.detach();
+			/*offFlag = true;
+			th.detach();*/
 
 			ClientSocket.Close();
 		}

@@ -18,6 +18,8 @@ struct info {
 	string size;
 };
 
+
+
 extern atomic<bool> offFlag;
 extern mutex mtx;
 extern queue<vector<inputFile>> file_download;
@@ -26,7 +28,7 @@ void signal_callback_handler(int signum);
 vector<string> StringToVector(string temp);
 bool checkInfo(inputFile temp, vector<info> infos, string level[]);
 void readNewFileAdded(string filename, vector<inputFile>& fileList, vector<info> List, string Level[]);
-void send_files_need_download_to_server(CSocket& client, vector<inputFile> filename);
-void receiveFile(vector<inputFile> files, CSocket& client, COORD current);
-vector<int> receiveFilesize(CSocket& client);
+void send_files_need_download_to_server(CSocket& client, vector<File> filename);
+void receiveFile(vector<File>& files, CSocket& client, COORD current);
+vector<long long> receiveFilesize(CSocket& client);
 void set_up();
