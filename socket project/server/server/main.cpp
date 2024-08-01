@@ -94,6 +94,7 @@ void sendFile(CSocket* client, vector<File> &files)
 {
 
 	int MsgSize = 1048576;
+	long long MsgSize_temp = 1048576;
 	int need_to_send;
 	char* temp;
 	int bytes_left;
@@ -106,7 +107,7 @@ void sendFile(CSocket* client, vector<File> &files)
 		if (fin) {
 			long long file_size = get_file_size(&fin);
 			long long cur_pos = files[i].position;
-			if (file_size - files[i].position < MsgSize) {
+			if (file_size - files[i].position < MsgSize_temp) {
 				bytes_left = file_size - files[i].position;
 				fin.seekg(cur_pos, ios::beg);
 				temp = new char[bytes_left + 1];
@@ -124,7 +125,7 @@ void sendFile(CSocket* client, vector<File> &files)
 			else {
 				if (files[i].priority == "CRITICAL") {
 					for (int i = 0; i < 10; i++) {
-						if (cur_pos + MsgSize >= file_size) {
+						if (cur_pos + MsgSize_temp >= file_size) {
 							bytes_left = file_size - cur_pos;
 							fin.seekg(cur_pos, ios::beg);
 							temp = new char[bytes_left + 1];
@@ -153,7 +154,7 @@ void sendFile(CSocket* client, vector<File> &files)
 				}
 				else if (files[i].priority == "HIGH") {
 					for (int i = 0; i < 4; i++) {
-						if (cur_pos + MsgSize >= file_size) {
+						if (cur_pos + MsgSize_temp >= file_size) {
 							bytes_left = file_size - cur_pos;
 							fin.seekg(cur_pos, ios::beg);
 							temp = new char[bytes_left + 1];
@@ -181,7 +182,7 @@ void sendFile(CSocket* client, vector<File> &files)
 					}
 				}
 				else if (files[i].priority == "NORMAL") {
-					if (cur_pos + MsgSize >= file_size) {
+					if (cur_pos + MsgSize_temp >= file_size) {
 						bytes_left = file_size - cur_pos;
 						fin.seekg(cur_pos, ios::beg);
 						temp = new char[bytes_left + 1];
@@ -224,13 +225,11 @@ DWORD WINAPI serve_client(LPVOID arg)
 	//Chuyen ve lai CSocket
 
 	bool isConnected = true;
-	vector<File> files;
 	
 
 	int MsgSize;
 	char* temp;
 	do {
-		files.clear();
 		int receive_bytes = mysock.Receive((char*)&MsgSize, sizeof(int), 0);
 		if (receive_bytes <= 0) {
 			isConnected = false;
@@ -241,9 +240,10 @@ DWORD WINAPI serve_client(LPVOID arg)
 			mysock.Receive(temp, MsgSize, 0);
 			temp[MsgSize] = '\0';
 			if (strcmp(temp, "start") == 0) {
-				files = receive_files_needed_to_send_from_client_2(&mysock, isConnected);
+				vector<File> files = receive_files_needed_to_send_from_client_2(&mysock, isConnected);
 				sendFile(&mysock, files);
 			}
+			
 		}
 
 	

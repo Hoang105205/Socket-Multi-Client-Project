@@ -11,40 +11,6 @@ struct ThreadParam{
 };
 
 
-
-
-void sort_list_files(vector<File> &files) {
-
-	
-
-
-	for (int i = 0; i < files.size() - 1; i++) {
-		for (int j = i + 1; j < files.size(); j++) {
-			if (files[i].filename == files[j].filename) {
-				if (files[i].priority < files[j].priority) {
-					if (j != files.size() - 1) {
-						//day phan tu j xuong cuoi vector
-						for (int k = j; k < files.size() - 1; k++) {
-							swap(files[k], files[k + 1]);
-						}
-					}
-					files.pop_back();
-				}
-				else if (files[i].priority >= files[j].priority) {
-					swap(files[i], files[j]);
-					if (j != files.size() - 1) {
-						//day phan tu j xuong cuoi vector
-						for (int k = j; k < files.size() - 1; k++) {
-							swap(files[k], files[k + 1]);
-						}
-					}
-					files.pop_back();
-				}
-			}
-		}
-	}
-}
-
 void clean_list(vector<File>& files) {
 	//kick nhung file da tai xong
 	int index = 0;
@@ -61,23 +27,7 @@ void clean_list(vector<File>& files) {
 	}
 }
 
-DWORD WINAPI function_cal(LPVOID arg)
-{
-	ThreadParam* param = (ThreadParam*)arg;
-	SOCKET* client = param->client;
-	CSocket ClientSocket;
-	ClientSocket.Attach(*client);
-	const char* start = "start";
-	int size = strlen(start);
-	ClientSocket.Send(&size, sizeof(int), 0);
-	ClientSocket.Send(start, size, 0);
-	/*receiveFile(param->file, ClientSocket, param->cursor);*/
-	
-	delete param;
-	return 0;
-}
-
-void send_start(CSocket &client) {
+void send_start(CSocket& client) {
 	const char* start = "start";
 	int size = strlen(start);
 	client.Send(&size, sizeof(int), 0);
@@ -107,6 +57,7 @@ void merge_list(vector<File>& files, vector<inputFile> input) {
 		}
 	}
 }
+
 
 int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 {
