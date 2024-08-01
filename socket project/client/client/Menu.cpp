@@ -184,6 +184,8 @@ vector<long long> receiveFilesize(CSocket& client)
 
 void receiveFile(vector<File>& files, CSocket& client, COORD current) {
 	vector<long long> file_size = receiveFilesize(client);
+
+
 	vector<float> percent;
 	//for (int i = 0; i < file_size.size(); i++)
 	//{
@@ -214,7 +216,7 @@ void receiveFile(vector<File>& files, CSocket& client, COORD current) {
 		}
 		else
 		{
-			fout.open(files[index].filename.c_str(), ios::binary, ios::app);
+			fout.open(files[index].filename.c_str(), ios::binary | ios::app);
 		}
 		if (files[index].priority == "CRITICAL") {
 			for (int i = 0; i < 10; i++) {

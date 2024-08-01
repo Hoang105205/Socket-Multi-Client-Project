@@ -231,7 +231,7 @@ DWORD WINAPI serve_client(LPVOID arg)
 	char* temp;
 	do {
 		files.clear();
-		/*int receive_bytes = mysock.Receive((char*)&MsgSize, sizeof(int), 0);
+		int receive_bytes = mysock.Receive((char*)&MsgSize, sizeof(int), 0);
 		if (receive_bytes <= 0) {
 			isConnected = false;
 			break;
@@ -244,10 +244,9 @@ DWORD WINAPI serve_client(LPVOID arg)
 				files = receive_files_needed_to_send_from_client_2(&mysock, isConnected);
 				sendFile(&mysock, files);
 			}
-		}*/
+		}
 
-		files = receive_files_needed_to_send_from_client_2(&mysock, isConnected);
-		sendFile(&mysock, files);
+	
 
 	} while (isConnected);
 

@@ -14,17 +14,8 @@ struct ThreadParam{
 
 
 void sort_list_files(vector<File> &files) {
-	//kick nhung file da tai xong
-	for (int i = files.size() - 1; i >= 0; i--) {
-		if (files[i].send_all_bytes == true) {
-			if (i != files.size() - 1) {
-				for (int k = i; k < files.size() - 1; k++) {
-					swap(files[k], files[k + 1]);
-				}
-			}
-			files.pop_back();
-		}
-	}
+
+	
 
 
 	for (int i = 0; i < files.size() - 1; i++) {
@@ -54,6 +45,22 @@ void sort_list_files(vector<File> &files) {
 	}
 }
 
+void clean_list(vector<File>& files) {
+	//kick nhung file da tai xong
+	int index = 0;
+	while (index < files.size()) {
+		if (files[index].send_all_bytes == true) {
+			for (int k = index; k < files.size() - 1; k++) {
+				swap(files[k], files[k + 1]);
+			}
+			files.pop_back();
+		}
+		else {
+			index++;
+		}
+	}
+}
+
 DWORD WINAPI function_cal(LPVOID arg)
 {
 	ThreadParam* param = (ThreadParam*)arg;
@@ -79,15 +86,26 @@ void send_start(CSocket &client) {
 
 void merge_list(vector<File>& files, vector<inputFile> input) {
 	for (int i = 0; i < input.size(); i++) {
-		File put;
-		put.filename = input[i].name;
-		put.priority = input[i].priority;
-		put.new_file = true;
-		put.send_all_bytes = false;
-		put.position = 0;
-		files.push_back(put);
+		bool flag = true;
+		for (int j = 0; j < files.size(); j++) {
+			if (input[i].name == files[j].filename) {
+				flag = false;
+				if (input[i].priority < files[j].priority) {
+					files[j].priority = input[i].priority;
+				}
+				break;
+			}
+		}
+		if (flag == true) {
+			File put;
+			put.filename = input[i].name;
+			put.priority = input[i].priority;
+			put.new_file = true;
+			put.send_all_bytes = false;
+			put.position = 0;
+			files.push_back(put);
+		}
 	}
-	sort_list_files(files);
 }
 
 int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
@@ -124,38 +142,27 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 			set_up();
 			vector<info> files = ReceiveFiles_canbedownloaded(ClientSocket);
 			vector<inputFile> main_List = InitListIfExisted("input.txt");
-			/*string Level[3] = { "CRITICAL", "HIGH", "NORMAL" };
-			thread th(readNewFileAdded, "input.txt", ref(main_List), files, Level);*/
+			string Level[3] = { "CRITICAL", "HIGH", "NORMAL" };
+			thread th(readNewFileAdded, "input.txt", ref(main_List), files, Level);
 			
 
 			vector<File> list;
-			/*while (1){
+			while (1){
+				clean_list(list);
 				if (!file_download.empty()) {
 					vector<inputFile> input = file_download.front();
 					merge_list(list, input);
+					file_download.pop();
+				}
+				if (!list.empty()) {
 					send_start(ClientSocket);
 					send_files_need_download_to_server(ClientSocket, list);
 					receiveFile(list, ClientSocket, getCursorPosition());
-					file_download.pop();
 				}
-			}*/
-			File a;
-			a.filename = "50MB.zip";
-			a.new_file = true;
-			a.position = 0;
-			a.priority = "CRITICAL";
-			a.send_all_bytes = false;
-			list.push_back(a);
-			vector<inputFile> b;
-			while (!list.empty()) {
-				send_files_need_download_to_server(ClientSocket, list);
-				receiveFile(list, ClientSocket, getCursorPosition());
-
-				merge_list(list, b);
 			}
-
-			/*offFlag = true;
-			th.detach();*/
+			
+			offFlag = true;
+			th.detach();
 
 			ClientSocket.Close();
 		}
