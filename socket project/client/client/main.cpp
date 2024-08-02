@@ -11,20 +11,17 @@ struct ThreadParam{
 };
 
 
-void clean_list(vector<File>& files) {
+vector<File> clean_list(vector<File> files) {
 	//kick nhung file da tai xong
+	vector<File> res;
 	int index = 0;
 	while (index < files.size()) {
-		if (files[index].send_all_bytes == true) {
-			for (int k = index; k < files.size() - 1; k++) {
-				swap(files[k], files[k + 1]);
-			}
-			files.pop_back();
-		}
-		else {
-			index++;
-		}
+		if (files[index].send_all_bytes != true) {
+			res.push_back(files[index]);
+		}					
+		index++;
 	}
+	return res;
 }
 
 void send_start(CSocket& client) {
