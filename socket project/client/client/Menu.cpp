@@ -226,24 +226,24 @@ void receiveFile(vector<File>& files, CSocket& client, COORD current) {
 				client.Receive((char*)&MsgSize, sizeof(MsgSize), 0);
 				temp = new char[MsgSize];
 				client.Receive(temp, MsgSize, 0);
-				cout << MsgSize << endl;
 				fout.write(temp, MsgSize);
+
 				/*SetCursorPos(temp_cursor[index].X + 5, temp_cursor[index].Y);
 				download[index] += percent[index];
 				cout << fixed << setprecision(0) << download[index] * 100 << "%" << flush;
 				this_thread::sleep_for(as);*/
 
-				client.Receive((char*)&MsgSize, sizeof(MsgSize), 0);
-				temp = new char[MsgSize];
-				client.Receive(temp, MsgSize, 0);
-				cout << MsgSize << endl;
-				fout.write(temp, MsgSize);
-				if (temp[MsgSize - 1] == '1')
+				client.Receive((char*)&size_flag, sizeof(size_flag), 0);
+				flag_msg = new char[size_flag + 1];
+				client.Receive(flag_msg, size_flag, 0);
+				flag_msg[size_flag] = '\0';
+				if (strcmp(flag_msg, "done") == 0)
 				{
 					files[index].send_all_bytes = true;
-					delete[] temp;
 					break;
 				}
+				cout << flag_msg << endl;
+				delete[] flag_msg;
 				delete[] temp;
 			}
 		}
@@ -252,18 +252,24 @@ void receiveFile(vector<File>& files, CSocket& client, COORD current) {
 				client.Receive((char*)&MsgSize, sizeof(MsgSize), 0);
 				temp = new char[MsgSize];
 				client.Receive(temp, MsgSize, 0);
-				cout << MsgSize << endl;
-				fout.write(temp, MsgSize - 1);
+				fout.write(temp, MsgSize);
+
 				/*SetCursorPos(temp_cursor[index].X + 5, temp_cursor[index].Y);
 				download[index] += percent[index];
 				cout << fixed << setprecision(0) << download[index] * 100 << "%" << flush;
 				this_thread::sleep_for(as);*/
-				if (temp[MsgSize - 1] == '1')
+
+				client.Receive((char*)&size_flag, sizeof(size_flag), 0);
+				flag_msg = new char[size_flag + 1];
+				client.Receive(flag_msg, size_flag, 0);
+				flag_msg[size_flag] = '\0';
+				if (strcmp(flag_msg, "done") == 0)
 				{
 					files[index].send_all_bytes = true;
-					delete[] temp;
 					break;
 				}
+				cout << flag_msg << endl;
+				delete[] flag_msg;
 				delete[] temp;
 			}
 		}
@@ -285,6 +291,8 @@ void receiveFile(vector<File>& files, CSocket& client, COORD current) {
 			{
 				files[index].send_all_bytes = true;
 			}
+			cout << flag_msg << endl;
+			delete[] flag_msg;
 			delete[] temp;
 		}
 		files[index].position = fout.tellp(); 

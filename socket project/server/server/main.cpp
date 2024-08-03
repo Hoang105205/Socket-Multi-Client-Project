@@ -93,9 +93,8 @@ long long get_file_size(ifstream &ifstream_filename) {
 
 void sendFile(CSocket* client, vector<File> &files)
 {
-
-	int MsgSize = 1048576;
-	long long MsgSize_temp = 1048576;
+	int MsgSize = 102400;
+	long long MsgSize_temp = 102400;
 	int need_to_send;
 	char* temp;
 	int bytes_left;
@@ -108,6 +107,7 @@ void sendFile(CSocket* client, vector<File> &files)
 		if (fin) {
 			long long file_size = get_file_size(fin);
 			long long cur_pos = files[i].position;
+			
 			if (file_size - files[i].position < MsgSize_temp) {
 				bytes_left = (int)(file_size - files[i].position);
 				fin.seekg(cur_pos, ios::beg);
@@ -123,6 +123,7 @@ void sendFile(CSocket* client, vector<File> &files)
 
 				files[i].send_all_bytes = true;
 				delete[] temp;
+
 			}
 			else {
 				if (files[i].priority == "CRITICAL") {

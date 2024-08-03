@@ -83,7 +83,7 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 		ClientSocket.Create();
 
 		// Ket noi den Server
-		if (ClientSocket.Connect(_T("192.168.1.84"), 1234) != 0)
+		if (ClientSocket.Connect(_T("192.168.1.83"), 1234) != 0)
 		{
 			cout << "Ket noi toi Server thanh cong !!!" << endl << endl;
 			signal(SIGINT, signal_callback_handler);
@@ -96,14 +96,17 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 
 			vector<File> list;
 			while (1){
-				clean_list(list);
+				list = clean_list(list);
 				if (!file_download.empty()) {
 					vector<inputFile> input = file_download.front();
 					merge_list(list, input);
 					file_download.pop();
 				}
-				if (!list.empty()) {
+				if (list.size() != 0) {
 					send_start(ClientSocket);
+					for (int i = 0; i < list.size(); i++) {
+						cout << list[i].filename << " - " << list[i].priority << " - " << list[i].position << endl;
+					}
 					send_files_need_download_to_server(ClientSocket, list);
 					receiveFile(list, ClientSocket, getCursorPosition());
 				}
