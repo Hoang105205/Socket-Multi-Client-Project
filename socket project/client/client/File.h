@@ -12,8 +12,16 @@
 #include <sstream>
 using namespace std;
 struct inputFile {
-	string name;
-	string priority;
+	string name = "";
+	string priority = "";
+};
+
+struct File {
+	bool new_file = true;
+	string filename = "";
+	string priority = "";
+	bool send_all_bytes = false;
+	long long position = 0;
 };
 
 bool isFileEmpty(string filename);

@@ -11,18 +11,50 @@ struct ThreadParam{
 };
 
 
-DWORD WINAPI function_cal(LPVOID arg)
-{
-	ThreadParam* param = (ThreadParam*)arg;
-	SOCKET* client = param->client;
-	CSocket ClientSocket;
-	ClientSocket.Attach(*client);
-	send_files_need_download_to_server(ClientSocket, param->file);
-	//receiveFile(param->file, ClientSocket, param->cursor);
-	delete client;
-	delete param;
-	return 0;
+vector<File> clean_list(vector<File> files) {
+	//kick nhung file da tai xong
+	vector<File> res;
+	int index = 0;
+	while (index < files.size()) {
+		if (files[index].send_all_bytes != true) {
+			res.push_back(files[index]);
+		}					
+		index++;
+	}
+	return res;
 }
+
+void send_start(CSocket& client) {
+	const char* start = "start";
+	int size = strlen(start);
+	client.Send(&size, sizeof(int), 0);
+	client.Send(start, size, 0);
+}
+
+void merge_list(vector<File>& files, vector<inputFile> input) {
+	for (int i = 0; i < input.size(); i++) {
+		bool flag = true;
+		for (int j = 0; j < files.size(); j++) {
+			if (input[i].name == files[j].filename) {
+				flag = false;
+				if (input[i].priority < files[j].priority) {
+					files[j].priority = input[i].priority;
+				}
+				break;
+			}
+		}
+		if (flag == true) {
+			File put;
+			put.filename = input[i].name;
+			put.priority = input[i].priority;
+			put.new_file = true;
+			put.send_all_bytes = false;
+			put.position = 0;
+			files.push_back(put);
+		}
+	}
+}
+
 
 int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 {
@@ -56,29 +88,30 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 			cout << "Ket noi toi Server thanh cong !!!" << endl << endl;
 			signal(SIGINT, signal_callback_handler);
 			set_up();
-			COORD cursorPos = getCursorPosition();
-			cursorPos.Y += 1;
-
 			vector<info> files = ReceiveFiles_canbedownloaded(ClientSocket);
 			vector<inputFile> main_List = InitListIfExisted("input.txt");
 			string Level[3] = { "CRITICAL", "HIGH", "NORMAL" };
 			thread th(readNewFileAdded, "input.txt", ref(main_List), files, Level);
+			
 
+			vector<File> list;
 			while (1){
+				list = clean_list(list);
 				if (!file_download.empty()) {
-					DWORD threadID;
-					HANDLE threadStatus;
-					SOCKET* hConnected = new SOCKET();
-					*hConnected = ClientSocket.Detach();
-					ThreadParam* param = new ThreadParam();
-					param->client = hConnected;
-					param->file = file_download.front();
-					param->cursor = getCursorPosition();
-					threadStatus = CreateThread(NULL, 0, function_cal, param, 0, &threadID);
+					vector<inputFile> input = file_download.front();
+					merge_list(list, input);
 					file_download.pop();
 				}
+				if (list.size() != 0) {
+					send_start(ClientSocket);
+					for (int i = 0; i < list.size(); i++) {
+						cout << list[i].filename << " - " << list[i].priority << " - " << list[i].position << endl;
+					}
+					send_files_need_download_to_server(ClientSocket, list);
+					receiveFile(list, ClientSocket, getCursorPosition());
+				}
 			}
-
+			
 			offFlag = true;
 			th.detach();
 
