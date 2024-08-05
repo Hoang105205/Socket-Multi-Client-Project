@@ -27,11 +27,7 @@ vector<File> receive_files_needed_to_send_from_client_2(CSocket* client, bool& i
 	vector<File> files;
 	while (isConnected) {
 		File temp_inputFile;
-		int receive_bytes = client->Receive((char*)&MsgSize, sizeof(int), 0);
-		if (receive_bytes <= 0) {  // Client đã ngắt kết nối hoặc có lỗi
-			isConnected = false;  // Đặt cờ thành false để thoát vòng lặp
-			break;
-		}
+		client->Receive((char*)&MsgSize, sizeof(int), 0);
 		temp_msg = new char[MsgSize + 1];
 		client->Receive(temp_msg, MsgSize, 0);
 		temp_msg[MsgSize] = '\0';
@@ -218,7 +214,6 @@ void sendFile(CSocket* client, vector<File> &files)
 						int size_flag = strlen(flag);
 						client->Send(&size_flag, sizeof(size_flag), 0);
 						client->Send(flag, size_flag, 0);
-
 						files[i].send_all_bytes = true;
 						cur_pos += MsgSize;
 						delete[] temp;
@@ -239,6 +234,7 @@ void sendFile(CSocket* client, vector<File> &files)
 						cur_pos += MsgSize;
 						delete[] temp;
 					}
+					cout << "gui xong" << endl;
 				}
 
 			}
@@ -274,6 +270,7 @@ DWORD WINAPI serve_client(LPVOID arg)
 			temp[MsgSize] = '\0';
 			if (strcmp(temp, "start") == 0) {
 				vector<File> files = receive_files_needed_to_send_from_client_2(&mysock, isConnected);
+				cout << "lang nghe" << endl;
 				sendFile(&mysock, files);
 			}
 			

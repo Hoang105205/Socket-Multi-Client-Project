@@ -278,6 +278,7 @@ void receiveFile(vector<File>& files, CSocket& client, COORD current) {
 			temp = new char[MsgSize];
 			client.Receive(temp, MsgSize, 0);
 			fout.write(temp, MsgSize);
+			cout << "chep file xong" << endl;
 			/*SetCursorPos(temp_cursor[index].X + 5, temp_cursor[index].Y);
 			download[index] += percent[index];
 			cout << fixed << setprecision(0) << download[index] * 100 << "%" << flush;
