@@ -27,7 +27,11 @@ vector<File> receive_files_needed_to_send_from_client_2(CSocket* client, bool& i
 	vector<File> files;
 	while (isConnected) {
 		File temp_inputFile;
-		client->Receive((char*)&MsgSize, sizeof(int), 0);
+		int receive_bytes = client->Receive((char*)&MsgSize, sizeof(int), 0);
+		if (receive_bytes <= 0) {  // Client đã ngắt kết nối hoặc có lỗi
+			isConnected = false;  // Đặt cờ thành false để thoát vòng lặp
+			break;
+		}
 		temp_msg = new char[MsgSize + 1];
 		client->Receive(temp_msg, MsgSize, 0);
 		temp_msg[MsgSize] = '\0';
@@ -91,7 +95,6 @@ void sendFile(CSocket* client, vector<File> &files)
 {
 	int MsgSize = 102400;
 	long long MsgSize_temp = 102400;
-	int need_to_send;
 	char* temp;
 	int bytes_left;
 	sendFilesize(client, files);
@@ -104,7 +107,7 @@ void sendFile(CSocket* client, vector<File> &files)
 			long long file_size = get_file_size(fin);
 			long long cur_pos = files[i].position;
 			
-			if (file_size - files[i].position < MsgSize_temp) {
+		if (file_size - files[i].position < MsgSize_temp) {
 				bytes_left = (int)(file_size - files[i].position);
 				fin.seekg(cur_pos, ios::beg);
 				temp = new char[bytes_left];
@@ -214,8 +217,8 @@ void sendFile(CSocket* client, vector<File> &files)
 						int size_flag = strlen(flag);
 						client->Send(&size_flag, sizeof(size_flag), 0);
 						client->Send(flag, size_flag, 0);
+
 						files[i].send_all_bytes = true;
-						cur_pos += MsgSize;
 						delete[] temp;
 					}
 					else {
@@ -231,12 +234,9 @@ void sendFile(CSocket* client, vector<File> &files)
 						client->Send(&size_flag, sizeof(size_flag), 0);
 						client->Send(flag, size_flag, 0);
 
-						cur_pos += MsgSize;
 						delete[] temp;
 					}
-					cout << "gui xong" << endl;
 				}
-
 			}
 		}
 		fin.close();

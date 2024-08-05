@@ -182,6 +182,28 @@ vector<long long> receiveFilesize(CSocket& client)
 	return file_size;
 }
 
+void HandleReceiveError(CSocket& socket) {
+	int error = socket.GetLastError();
+	switch (error) {
+	case WSAEWOULDBLOCK:
+		std::cerr << "The socket is marked as non-blocking and the operation would block.\n";
+		break;
+	case WSAECONNRESET:
+		std::cerr << "Connection reset by peer.\n";
+		break;
+	case WSAENOTCONN:
+		std::cerr << "The socket is not connected.\n";
+		break;
+	case WSAESHUTDOWN:
+		std::cerr << "The socket has been shut down.\n";
+		break;
+		// Add more cases as needed
+	default:
+		std::cerr << "Receive failed with error: " << error << "\n";
+		break;
+	}
+}
+
 void receiveFile(vector<File>& files, CSocket& client, COORD current) {
 	vector<long long> file_size = receiveFilesize(client);
 
@@ -274,25 +296,41 @@ void receiveFile(vector<File>& files, CSocket& client, COORD current) {
 			}
 		}
 		else if (files[index].priority == "NORMAL") {
-			client.Receive((char*)&MsgSize, sizeof(MsgSize), 0);
+			if (client.Receive((char*)&MsgSize, sizeof(MsgSize), 0) ==  SOCKET_ERROR)
+			{
+				HandleReceiveError(client);
+			}
+			cout << endl << MsgSize << endl;
+
 			temp = new char[MsgSize];
-			client.Receive(temp, MsgSize, 0);
+			if (client.Receive(temp, MsgSize, 0) == SOCKET_ERROR) {
+				HandleReceiveError(client);
+			}
+			cout << endl << temp << endl;
+
 			fout.write(temp, MsgSize);
-			cout << "chep file xong" << endl;
 			/*SetCursorPos(temp_cursor[index].X + 5, temp_cursor[index].Y);
 			download[index] += percent[index];
 			cout << fixed << setprecision(0) << download[index] * 100 << "%" << flush;
 			this_thread::sleep_for(as);*/
 
-			client.Receive((char*)&size_flag, sizeof(size_flag), 0);
+			if (client.Receive((char*)&size_flag, sizeof(size_flag), 0) == SOCKET_ERROR)
+			{
+				HandleReceiveError(client);
+			}
+			cout << endl << size_flag << endl;
+
 			flag_msg = new char[size_flag + 1];
-			client.Receive(flag_msg, size_flag, 0);
+			if (client.Receive(flag_msg, size_flag, 0) == SOCKET_ERROR)
+			{
+				HandleReceiveError(client);
+			}
 			flag_msg[size_flag] = '\0';
 			if (strcmp(flag_msg, "done") == 0)
 			{
 				files[index].send_all_bytes = true;
 			}
-			cout << flag_msg << endl;
+			cout << endl << flag_msg << endl;
 			delete[] flag_msg;
 			delete[] temp;
 		}
