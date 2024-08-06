@@ -83,7 +83,7 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 		ClientSocket.Create();
 
 		// Ket noi den Server
-		if (ClientSocket.Connect(_T("192.168.1.83"), 1234) != 0)
+		if (ClientSocket.Connect(_T("192.168.1.9"), 1234) != 0)
 		{
 			cout << "Ket noi toi Server thanh cong !!!" << endl << endl;
 			signal(SIGINT, signal_callback_handler);

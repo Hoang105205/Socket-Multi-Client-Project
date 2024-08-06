@@ -270,7 +270,6 @@ DWORD WINAPI serve_client(LPVOID arg)
 			temp[MsgSize] = '\0';
 			if (strcmp(temp, "start") == 0) {
 				vector<File> files = receive_files_needed_to_send_from_client_2(&mysock, isConnected);
-				cout << "lang nghe" << endl;
 				sendFile(&mysock, files);
 			}
 			
