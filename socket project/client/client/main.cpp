@@ -4,58 +4,6 @@
 #include "Menu.h"
 using namespace std;
 
-struct ThreadParam{
-	SOCKET* client;
-	vector<inputFile> file;
-	COORD cursor;
-};
-
-
-vector<File> clean_list(vector<File> files) {
-	//kick nhung file da tai xong
-	vector<File> res;
-	int index = 0;
-	while (index < files.size()) {
-		if (files[index].send_all_bytes != true) {
-			res.push_back(files[index]);
-		}					
-		index++;
-	}
-	return res;
-}
-
-void send_start(CSocket& client) {
-	const char* start = "start";
-	int size = strlen(start);
-	client.Send(&size, sizeof(int), 0);
-	client.Send(start, size, 0);
-}
-
-void merge_list(vector<File>& files, vector<inputFile> input) {
-	for (int i = 0; i < input.size(); i++) {
-		bool flag = true;
-		for (int j = 0; j < files.size(); j++) {
-			if (input[i].name == files[j].filename) {
-				flag = false;
-				if (input[i].priority < files[j].priority) {
-					files[j].priority = input[i].priority;
-				}
-				break;
-			}
-		}
-		if (flag == true) {
-			File put;
-			put.filename = input[i].name;
-			put.priority = input[i].priority;
-			put.new_file = true;
-			put.send_all_bytes = false;
-			put.position = 0;
-			files.push_back(put);
-		}
-	}
-}
-
-
 int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 {
 
@@ -83,7 +31,7 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 		ClientSocket.Create();
 
 		// Ket noi den Server
-		if (ClientSocket.Connect(_T("192.168.1.9"), 1234) != 0)
+		if (ClientSocket.Connect(_T("192.168.1.84"), 1234) != 0)
 		{
 			cout << "Ket noi toi Server thanh cong !!!" << endl << endl;
 			signal(SIGINT, signal_callback_handler);
@@ -95,20 +43,19 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 			
 
 			vector<File> list;
+			COORD start = getCursorPosition();
+			start.Y += 2;
 			while (1){
 				list = clean_list(list);
 				if (!file_download.empty()) {
 					vector<inputFile> input = file_download.front();
-					merge_list(list, input);
+					merge_list(list, input, start);
 					file_download.pop();
 				}
 				if (list.size() != 0) {
 					send_start(ClientSocket);
-					for (int i = 0; i < list.size(); i++) {
-						cout << list[i].filename << " - " << list[i].priority << " - " << list[i].position << endl;
-					}
 					send_files_need_download_to_server(ClientSocket, list);
-					receiveFile(list, ClientSocket, getCursorPosition());
+					receiveFile(list, ClientSocket);
 				}
 			}
 			

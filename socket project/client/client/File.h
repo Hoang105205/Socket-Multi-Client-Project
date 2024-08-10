@@ -22,9 +22,12 @@ struct File {
 	string priority = "";
 	bool send_all_bytes = false;
 	long long position = 0;
+	COORD download_cursor;
 };
 
 bool isFileEmpty(string filename);
 void setCursorPosition(int x, int y);
 COORD getCursorPosition();
 vector<inputFile> InitListIfExisted(string filename);
+vector<File> clean_list(vector<File> files);
+void merge_list(vector<File>& files, vector<inputFile> input, COORD& start);

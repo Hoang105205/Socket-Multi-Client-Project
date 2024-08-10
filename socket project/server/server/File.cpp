@@ -38,19 +38,8 @@ void SendListFile(CSocket* Connector, string filename)
 	}
 }
 
-bool check_finish(ifstream& f)
-{
-    int temp1 = f.tellg();
-    f.seekg(ios::end);
-    int temp2 = f.tellg();
-    if (temp1 == temp2)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+long long get_file_size(ifstream &ifstream_filename) {
+	ifstream_filename.seekg(0, ios::end);
+	long long a = ifstream_filename.tellg();
+	return a;
 }
-
-

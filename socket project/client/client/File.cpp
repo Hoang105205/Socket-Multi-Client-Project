@@ -60,3 +60,42 @@ vector<inputFile> InitListIfExisted(string filename)
 	f.close();
 	return List_temp;
 }
+
+vector<File> clean_list(vector<File> files) {
+	//kick nhung file da tai xong
+	vector<File> res;
+	int index = 0;
+	while (index < files.size()) {
+		if (files[index].send_all_bytes != true) {
+			res.push_back(files[index]);
+		}
+		index++;
+	}
+	return res;
+}
+
+void merge_list(vector<File>& files, vector<inputFile> input, COORD& start) {
+	for (int i = 0; i < input.size(); i++) {
+		bool flag = true;
+		for (int j = 0; j < files.size(); j++) {
+			if (input[i].name == files[j].filename) {
+				flag = false;
+				if (input[i].priority < files[j].priority) {
+					files[j].priority = input[i].priority;
+				}
+				break;
+			}
+		}
+		if (flag == true) {
+			File put;
+			put.filename = input[i].name;
+			put.priority = input[i].priority;
+			put.new_file = true;
+			put.send_all_bytes = false;
+			put.position = 0;
+			put.download_cursor = start;
+			files.push_back(put);
+			start.Y++;
+		}
+	}
+}
