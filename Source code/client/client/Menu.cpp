@@ -44,34 +44,7 @@ vector<info> ReceiveFiles_canbedownloaded(CSocket& ClientSocket) {
 	return files;
 }
 
-vector<string> StringToVector(string temp)
-{
-	vector<string> a;
-	int cnt = 0;
-	int mark = 0;
-	for (int i = 0; i < temp.length(); i++)
-	{
-		if (temp[i] == ',')
-		{
-			a.push_back(temp.substr(mark, cnt));
-			mark = i + 1;
-			cnt = -1;
-		}
-		cnt++;
-	}
-	if (a.size() == 0)
-	{
-		a.push_back(temp);
-	}
-	else
-	{
-		a.push_back(temp.substr(mark, temp.length() - mark));
-	}
-	return a;
-}
 
-
-//Quang
 bool checkInfo(inputFile temp, vector<info> infos, string level[])
 {
 	bool flag = false;

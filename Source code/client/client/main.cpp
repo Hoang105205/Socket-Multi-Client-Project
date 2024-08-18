@@ -31,7 +31,12 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 		ClientSocket.Create();
 
 		// Ket noi den Server
-		if (ClientSocket.Connect(_T("192.168.1.84"), 1234) != 0)
+
+		string IP;
+		cout << "Nhap dia chi IP: ";
+		cin >> IP;
+		CString cstrIP(IP.c_str());
+		if (ClientSocket.Connect(cstrIP, 1234) != 0)
 		{
 			cout << "Ket noi toi Server thanh cong !!!" << endl << endl;
 			signal(SIGINT, signal_callback_handler);
